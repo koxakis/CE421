@@ -4,6 +4,8 @@
 *.obj
 *.elf
 
+*.grey
+
 # Precompiled Headers
 *.gch
 *.pch
