@@ -4,6 +4,7 @@
 *.obj
 *.elf
 
+sobel_orig
 *.grey
 
 # Precompiled Headers
