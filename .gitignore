@@ -6,6 +6,7 @@
 
 sobel_orig
 *.grey
+*.jpg
 
 # Precompiled Headers
 *.gch
