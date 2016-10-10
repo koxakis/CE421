@@ -12,10 +12,6 @@
 #include <errno.h>
 
 #define SIZE	4096
-//Try to put value in register
-#define SIZE_2	4096*4096
-#define SIZE_3	4096*sizeof(unsigned char)
-
 #define INPUT_FILE	"input.grey"
 #define OUTPUT_FILE	"output_sobel.grey"
 #define GOLDEN_FILE	"golden.grey"
@@ -28,7 +24,6 @@ char vert_operator[3][3] = {{1, 2, 1},
 {0, 0, 0},
 {-1, -2, -1}};
 
-
 double sobel(unsigned char *input, unsigned char *output, unsigned char *golden);
 int convolution2D(int posy, int posx, const unsigned char *input, char operator[][3]);
 
@@ -37,7 +32,7 @@ int convolution2D(int posy, int posx, const unsigned char *input, char operator[
 * grayscale image is represented by a value between 0 and 255 (an unsigned *
 * character). The arrays (and the files) contain these values in row-major *
 * order (element after element within each row and row after row. 			*/
-unsigned char input[SIZE_2], output[SIZE_2], golden[SIZE_2];
+unsigned char input[SIZE*SIZE], output[SIZE*SIZE], golden[SIZE*SIZE];
 
 
 /* Implement a 2D convolution of the matrix with the operator */
@@ -76,8 +71,8 @@ double sobel(unsigned char *input, unsigned char *output, unsigned char *golden)
 	/* The first and last row of the output array, as well as the first  *
 	* and last element of each column are not going to be filled by the *
 	* algorithm, therefore make sure to initialize them with 0s.		 */
-	memset(output, 0, SIZE_3);
-	memset(&output[SIZE*(SIZE-1)], 0, SIZE_3);
+	memset(output, 0, SIZE*sizeof(unsigned char));
+	memset(&output[SIZE*(SIZE-1)], 0, SIZE*sizeof(unsigned char));
 	for (i = 1; i < SIZE-1; i++) {
 		output[i*SIZE] = 0;
 		output[i*SIZE + SIZE - 1] = 0;
@@ -107,8 +102,8 @@ double sobel(unsigned char *input, unsigned char *output, unsigned char *golden)
 		exit(1);
 	}
 
-	fread(input, sizeof(unsigned char), SIZE_2, f_in);
-	fread(golden, sizeof(unsigned char), SIZE_2, f_golden);
+	fread(input, sizeof(unsigned char), SIZE*SIZE, f_in);
+	fread(golden, sizeof(unsigned char), SIZE*SIZE, f_golden);
 	fclose(f_in);
 	fclose(f_golden);
 
@@ -140,7 +135,7 @@ double sobel(unsigned char *input, unsigned char *output, unsigned char *golden)
 		}
 	}
 
-	PSNR /= (double)(SIZE_2);
+	PSNR /= (double)(SIZE*SIZE);
 	PSNR = 10*log10(65536/PSNR);
 
 	/* This is the end of the main computation. Take the end time,  *
@@ -153,7 +148,7 @@ double sobel(unsigned char *input, unsigned char *output, unsigned char *golden)
 
 
 	/* Write the output file */
-	fwrite(output, sizeof(unsigned char), SIZE_2, f_out);
+	fwrite(output, sizeof(unsigned char), SIZE*SIZE, f_out);
 	fclose(f_out);
 
 	return PSNR;
