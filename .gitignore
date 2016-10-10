@@ -8,7 +8,7 @@ sobel_orig
 *.grey
 *.jpg
 outfile.txt
-
+.~lock.Lab1_counts.ods#
 # Precompiled Headers
 *.gch
 *.pch
