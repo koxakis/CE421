@@ -2,6 +2,7 @@
 // sobelized image
 
 //SIZE*SIZE common subexpresion elimination
+//Minimize prints to screen
 
 #include <stdio.h>
 #include <math.h>
