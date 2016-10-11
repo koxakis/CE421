@@ -1,7 +1,10 @@
 // This will apply the sobel filter and return the PSNR between the golden sobel and the produced sobel
 // sobelized image
 
+//solitify testing methodology
 //SIZE*SIZE common subexpresion elimination
+//For reversal
+//loop unrolling
 //Minimize prints to screen
 
 #include <stdio.h>
@@ -12,6 +15,7 @@
 #include <errno.h>
 
 #define SIZE	4096
+#define SIZE_2	4096*4096
 #define INPUT_FILE	"input.grey"
 #define OUTPUT_FILE	"output_sobel.grey"
 #define GOLDEN_FILE	"golden.grey"
@@ -32,7 +36,7 @@ int convolution2D(int posy, int posx, const unsigned char *input, char operator[
 * grayscale image is represented by a value between 0 and 255 (an unsigned *
 * character). The arrays (and the files) contain these values in row-major *
 * order (element after element within each row and row after row. 			*/
-unsigned char input[SIZE*SIZE], output[SIZE*SIZE], golden[SIZE*SIZE];
+unsigned char input[SIZE_2], output[SIZE_2], golden[SIZE_2];
 
 
 /* Implement a 2D convolution of the matrix with the operator */
@@ -102,14 +106,15 @@ double sobel(unsigned char *input, unsigned char *output, unsigned char *golden)
 		exit(1);
 	}
 
-	fread(input, sizeof(unsigned char), SIZE*SIZE, f_in);
-	fread(golden, sizeof(unsigned char), SIZE*SIZE, f_golden);
+	fread(input, sizeof(unsigned char), SIZE_2, f_in);
+	fread(golden, sizeof(unsigned char), SIZE_2, f_golden);
 	fclose(f_in);
 	fclose(f_golden);
 
 	/* This is the main computation. Get the starting time. */
 	clock_gettime(CLOCK_MONOTONIC_RAW, &tv1);
 	/* For each pixel of the output image */
+	//For reversal
 	for (j=1; j<SIZE-1; j+=1) {
 		for (i=1; i<SIZE-1; i+=1 ) {
 			/* Apply the sobel filter and calculate the magnitude *
@@ -135,7 +140,7 @@ double sobel(unsigned char *input, unsigned char *output, unsigned char *golden)
 		}
 	}
 
-	PSNR /= (double)(SIZE*SIZE);
+	PSNR /= (double)(SIZE_2);
 	PSNR = 10*log10(65536/PSNR);
 
 	/* This is the end of the main computation. Take the end time,  *
@@ -148,7 +153,7 @@ double sobel(unsigned char *input, unsigned char *output, unsigned char *golden)
 
 
 	/* Write the output file */
-	fwrite(output, sizeof(unsigned char), SIZE*SIZE, f_out);
+	fwrite(output, sizeof(unsigned char), SIZE_2, f_out);
 	fclose(f_out);
 
 	return PSNR;

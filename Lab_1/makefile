@@ -8,7 +8,7 @@ EXECUTABLES	= sobel_orig
 CC = icc
 
 #These are the flags passed to the compiler. Change accordingly
-CFLAGS = -Wall -fast
+CFLAGS = -Wall -O0
 
 #These are the flags passed to the linker. Nothing in our case
 LDFLAGS = -lm
@@ -17,18 +17,17 @@ LDFLAGS = -lm
 # make all will create all executables
 all: $(EXECUTABLES)
 
-# This is the rule to create any executable from the corresponding .c 
+# This is the rule to create any executable from the corresponding .c
 # file with the same name.
 %: %.c
 	$(CC) $(CFLAGS) $< -o $@ $(LDFLAGS)
 
-# make clean will remove all executables, jpg files and the 
+# make clean will remove all executables, jpg files and the
 # output of previous executions.
 clean:
 	rm -f $(EXECUTABLES) *.jpg output_sobel.grey
 
-# make image will create the output_sobel.jpg from the output_sobel.grey. 
+# make image will create the output_sobel.jpg from the output_sobel.grey.
 # Remember to change this rule if you change the name of the output file.
 image: output_sobel.grey
-	convert -depth 8 -size 4096x4096 GRAY:output_sobel.grey output_sobel.jpg 
-
+	convert -depth 8 -size 4096x4096 GRAY:output_sobel.grey output_sobel.jpg
