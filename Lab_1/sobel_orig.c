@@ -116,8 +116,8 @@ double sobel(unsigned char *input, unsigned char *output, unsigned char *golden)
 	clock_gettime(CLOCK_MONOTONIC_RAW, &tv1);
 	/* For each pixel of the output image */
 	//Posible Loop interchange
-	for (j=1; j<SIZE-1; j+=1) {
-		for (i=1; i<SIZE-1; i+=1 ) {
+	for (i=1; i<SIZE-1; i+=1 ) {
+		for (j=1; j<SIZE-1; j+=1) {
 			/* Apply the sobel filter and calculate the magnitude *
 			* of the derivative.								  */
 			p = pow(convolution2D(i, j, input, horiz_operator), 2) +
