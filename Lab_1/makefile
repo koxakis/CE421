@@ -8,7 +8,7 @@ EXECUTABLES	= sobel_orig
 CC = icc
 
 #These are the flags passed to the compiler. Change accordingly
-CFLAGS = -Wall -O0
+CFLAGS = -Wall -fast
 
 #These are the flags passed to the linker. Nothing in our case
 LDFLAGS = -lm
@@ -25,7 +25,7 @@ all: $(EXECUTABLES)
 # make clean will remove all executables, jpg files and the
 # output of previous executions.
 clean:
-	rm -f $(EXECUTABLES) *.jpg output_sobel.grey
+	rm -f $(EXECUTABLES) *.jpg output_sobel.grey outfile.txt
 
 # make image will create the output_sobel.jpg from the output_sobel.grey.
 # Remember to change this rule if you change the name of the output file.
