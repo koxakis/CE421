@@ -8,7 +8,7 @@ EXECUTABLES	= sobel_orig
 CC = icc
 
 #These are the flags passed to the compiler. Change accordingly
-CFLAGS = -Wall -fast
+CFLAGS = -Wall -O0
 
 #These are the flags passed to the linker. Nothing in our case
 LDFLAGS = -lm
