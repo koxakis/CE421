@@ -5,6 +5,7 @@
 //SIZE*SIZE common subexpresion elimination
 //For reversal
 //loop unrolling
+//function inlining
 //Minimize prints to screen
 
 #include <stdio.h>
@@ -165,7 +166,5 @@ int main(int argc, char* argv[])
 	double PSNR;
 	PSNR = sobel(input, output, golden);
 	printf("PSNR of original Sobel and computed Sobel image: %g\n", PSNR);
-	printf("A visualization of the sobel filter can be found at " OUTPUT_FILE ", or you can run 'make image' to get the jpg\n");
-
 	return 0;
 }
