@@ -9,6 +9,8 @@ sobel_orig
 *.jpg
 outfile.txt
 .~lock.Lab1_counts.ods#
+
+Lab_1/test/
 # Precompiled Headers
 *.gch
 *.pch
