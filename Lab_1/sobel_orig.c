@@ -132,9 +132,16 @@ double sobel(unsigned char *input, unsigned char *output, unsigned char *golden)
 			//Horizontal oporations
 			//Vertical oporations
 			for (k = -1; k <= 1; k++) {
-				for (z = -1; z <= 1; z++) {
+				for (z = -1; z <= 1; z+=3) {
 					horiz_res += input[(i + k)*SIZE + j + z] * horiz_operator[k+1][z+1];
 					vert_res += input[(i + k)*SIZE + j + z] * vert_operator[k+1][z+1];
+
+					horiz_res += input[(i + k)*SIZE + j + (z+1)] * horiz_operator[k+1][z+2];
+					vert_res += input[(i + k)*SIZE + j + (z+1)] * vert_operator[k+1][z+2];
+
+					horiz_res += input[(i + k)*SIZE + j + (z+2)] * horiz_operator[k+1][z+3];
+					vert_res += input[(i + k)*SIZE + j + (z+2)] * vert_operator[k+1][z+3];
+
 				}
 			}
 			//p = pow(convolution2D(i, j, input, horiz_operator), 2) +
