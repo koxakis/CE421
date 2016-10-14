@@ -129,15 +129,11 @@ double sobel(unsigned char *input, unsigned char *output, unsigned char *golden)
 			int k, z, horiz_res, vert_res;
 			horiz_res = 0;
 			vert_res = 0;
-			//horizontal oporations
-			for (k = -1; k <= 1; k++) {
-				for (z = -1; z <= 1; z++) {
-					horiz_res += input[(i + k)*SIZE + j + z] * horiz_operator[k+1][z+1];
-				}
-			}
+			//Horizontal oporations
 			//Vertical oporations
 			for (k = -1; k <= 1; k++) {
 				for (z = -1; z <= 1; z++) {
+					horiz_res += input[(i + k)*SIZE + j + z] * horiz_operator[k+1][z+1];
 					vert_res += input[(i + k)*SIZE + j + z] * vert_operator[k+1][z+1];
 				}
 			}
