@@ -4,8 +4,9 @@
 //solitify testing methodology
 //SIZE*SIZE common subexpresion elimination
 //Posible Loop interchange
-//loop unrolling
 //function inlining
+//Loop fusion
+//loop unrolling
 //Minimize prints to screen
 
 #include <stdio.h>
@@ -15,6 +16,7 @@
 #include <time.h>
 #include <errno.h>
 
+//Common subexpresion elimination 1st stage
 #define SIZE	4096
 #define SIZE_2	4096*4096
 #define INPUT_FILE	"input.grey"
@@ -46,7 +48,7 @@ unsigned char input[SIZE_2], output[SIZE_2], golden[SIZE_2];
 * operator the operator we apply (horizontal or vertical). The function ret. *
 * value is the convolution of the operator with the neighboring pixels of the*
 * pixel we process.														  */
-int convolution2D(int posy, int posx, const unsigned char *input, char operator[][3]) {
+/*int convolution2D(int posy, int posx, const unsigned char *input, char operator[][3]) {
 	int i, j, res;
 
 	//Posible Loop interchange
@@ -57,7 +59,7 @@ int convolution2D(int posy, int posx, const unsigned char *input, char operator[
 		}
 	}
 	return(res);
-}
+} */
 
 
 /* The main computational function of the program. The input, output and *
@@ -115,13 +117,33 @@ double sobel(unsigned char *input, unsigned char *output, unsigned char *golden)
 	/* This is the main computation. Get the starting time. */
 	clock_gettime(CLOCK_MONOTONIC_RAW, &tv1);
 	/* For each pixel of the output image */
-	//Posible Loop interchange
+	//Loop interchange 2nd stage
 	for (i=1; i<SIZE-1; i+=1 ) {
 		for (j=1; j<SIZE-1; j+=1) {
 			/* Apply the sobel filter and calculate the magnitude *
 			* of the derivative.								  */
-			p = pow(convolution2D(i, j, input, horiz_operator), 2) +
-			pow(convolution2D(i, j, input, vert_operator), 2);
+			//function inlining 3rd stage
+			//Loop fusion 4th stage
+			//Loop unrolling 5th stage
+			//int convolution2D(int posy, int posx, const unsigned char *input, char operator[][3]);
+			int k, z, horiz_res, vert_res;
+			horiz_res = 0;
+			vert_res = 0;
+			//horizontal oporations
+			for (k = -1; k <= 1; k++) {
+				for (z = -1; z <= 1; z++) {
+					horiz_res += input[(i + k)*SIZE + j + z] * horiz_operator[k+1][z+1];
+				}
+			}
+			//Vertical oporations
+			for (k = -1; k <= 1; k++) {
+				for (z = -1; z <= 1; z++) {
+					vert_res += input[(i + k)*SIZE + j + z] * vert_operator[k+1][z+1];
+				}
+			}
+			//p = pow(convolution2D(i, j, input, horiz_operator), 2) +
+			//pow(convolution2D(i, j, input, vert_operator), 2);
+			p = pow( horiz_res, 2) + pow( vert_res, 2);
 			res = (int)sqrt(p);
 			/* If the resulting value is greater than 255, clip it *
 			* to 255.											   */
