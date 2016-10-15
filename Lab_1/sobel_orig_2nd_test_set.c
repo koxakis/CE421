@@ -116,22 +116,15 @@ double sobel(unsigned char *input, unsigned char *output, unsigned char *golden)
  			for (k = -1; k <= 1; k++) {
  				for (z = -1; z <= 1; z+=3) {
  					horiz_res += input[(i + k)*SIZE + j + z] * horiz_operator[k+1][z+1];
-
- 					horiz_res += input[(i + k)*SIZE + j + (z+1)] * horiz_operator[k+1][z+2];
-
- 					horiz_res += input[(i + k)*SIZE + j + (z+2)] * horiz_operator[k+1][z+3];
- 				}
- 			}
-			for (k = -1; k <= 1; k++) {
-				for (z = -1; z <= 1; z+=3) {
 					vert_res += input[(i + k)*SIZE + j + z] * vert_operator[k+1][z+1];
 
+ 					horiz_res += input[(i + k)*SIZE + j + (z+1)] * horiz_operator[k+1][z+2];
 					vert_res += input[(i + k)*SIZE + j + (z+1)] * vert_operator[k+1][z+2];
 
+ 					horiz_res += input[(i + k)*SIZE + j + (z+2)] * horiz_operator[k+1][z+3];
 					vert_res += input[(i + k)*SIZE + j + (z+2)] * vert_operator[k+1][z+3];
-
-				}
-			}
+ 				}
+ 			}
  			p = pow( horiz_res, 2) + pow( vert_res, 2);
  			res = (int)sqrt(p);
 			/* If the resulting value is greater than 255, clip it *
