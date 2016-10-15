@@ -10,8 +10,8 @@
 /*
 Loop interchange
 Loop unrolling
-Loop fusion
 Function Inlining
+Loop fusion
 Common subexpresion elimination
 */
 
@@ -45,24 +45,6 @@ unsigned char input[SIZE*SIZE], output[SIZE*SIZE], golden[SIZE*SIZE];
  * operator the operator we apply (horizontal or vertical). The function ret. *
  * value is the convolution of the operator with the neighboring pixels of the*
  * pixel we process.														  */
-int convolution2D(int posy, int posx, const unsigned char *input, char operator[][3]) {
-	int i, j, res;
-
-	//Loop interchange 1st stage
-	//Loop unrolling 2nd stage
-	res = 0;
-	for (i = -1; i <= 1; i++) {
-		for (j = -1; j <= 1; j+=3) {
-			res += input[(posy + i)*SIZE + posx + j] * operator[i+1][j+1];
-
-			res += input[(posy + i)*SIZE + posx + (j+1)] * operator[i+1][j+2];
-
-			res += input[(posy + i)*SIZE + posx + (j+2)] * operator[i+1][j+3];
-		}
-	}
-	return(res);
-}
-
 
 /* The main computational function of the program. The input, output and *
  * golden arguments are pointers to the arrays used to store the input   *
@@ -124,9 +106,33 @@ double sobel(unsigned char *input, unsigned char *output, unsigned char *golden)
 		for (j=1; j<SIZE-1; j+=1) {
 			/* Apply the sobel filter and calculate the magnitude *
 			 * of the derivative.								  */
-			p = pow(convolution2D(i, j, input, horiz_operator), 2) +
-				pow(convolution2D(i, j, input, vert_operator), 2);
-			res = (int)sqrt(p);
+			//function inlining 3rd stage
+			int k, z, horiz_res, vert_res;
+ 			horiz_res = 0;
+ 			vert_res = 0;
+ 			//Horizontal oporations
+ 			//Vertical oporations
+ 			for (k = -1; k <= 1; k++) {
+ 				for (z = -1; z <= 1; z+=3) {
+ 					horiz_res += input[(i + k)*SIZE + j + z] * horiz_operator[k+1][z+1];
+
+ 					horiz_res += input[(i + k)*SIZE + j + (z+1)] * horiz_operator[k+1][z+2];
+
+ 					horiz_res += input[(i + k)*SIZE + j + (z+2)] * horiz_operator[k+1][z+3];
+ 				}
+ 			}
+			for (k = -1; k <= 1; k++) {
+				for (z = -1; z <= 1; z+=3) {
+					vert_res += input[(i + k)*SIZE + j + z] * vert_operator[k+1][z+1];
+
+					vert_res += input[(i + k)*SIZE + j + (z+1)] * vert_operator[k+1][z+2];
+
+					vert_res += input[(i + k)*SIZE + j + (z+2)] * vert_operator[k+1][z+3];
+
+				}
+			}
+ 			p = pow( horiz_res, 2) + pow( vert_res, 2);
+ 			res = (int)sqrt(p);
 			/* If the resulting value is greater than 255, clip it *
 			 * to 255.											   */
 			if (res > 255)
