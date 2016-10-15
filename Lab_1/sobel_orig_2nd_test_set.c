@@ -15,7 +15,9 @@ Loop fusion
 Common subexpresion elimination
 */
 
+//Common subexpresion elimination 5th stage
 #define SIZE	4096
+#define SIZE_2	4096*4096
 #define INPUT_FILE	"input.grey"
 #define OUTPUT_FILE	"output_sobel.grey"
 #define GOLDEN_FILE	"golden.grey"
@@ -36,7 +38,7 @@ int convolution2D(int posy, int posx, const unsigned char *input, char operator[
  * grayscale image is represented by a value between 0 and 255 (an unsigned *
  * character). The arrays (and the files) contain these values in row-major *
  * order (element after element within each row and row after row. 			*/
-unsigned char input[SIZE*SIZE], output[SIZE*SIZE], golden[SIZE*SIZE];
+unsigned char input[SIZE_2], output[SIZE_2], golden[SIZE_2];
 
 
 /* Implement a 2D convolution of the matrix with the operator */
@@ -92,8 +94,8 @@ double sobel(unsigned char *input, unsigned char *output, unsigned char *golden)
 		exit(1);
 	}
 
-	fread(input, sizeof(unsigned char), SIZE*SIZE, f_in);
-	fread(golden, sizeof(unsigned char), SIZE*SIZE, f_golden);
+	fread(input, sizeof(unsigned char), SIZE_2, f_in);
+	fread(golden, sizeof(unsigned char), SIZE_2, f_golden);
 	fclose(f_in);
 	fclose(f_golden);
 
@@ -152,7 +154,7 @@ double sobel(unsigned char *input, unsigned char *output, unsigned char *golden)
 		}
 	}
 
-	PSNR /= (double)(SIZE*SIZE);
+	PSNR /= (double)(SIZE_2);
 	PSNR = 10*log10(65536/PSNR);
 
 	/* This is the end of the main computation. Take the end time,  *
@@ -165,7 +167,7 @@ double sobel(unsigned char *input, unsigned char *output, unsigned char *golden)
 
 
 	/* Write the output file */
-	fwrite(output, sizeof(unsigned char), SIZE*SIZE, f_out);
+	fwrite(output, sizeof(unsigned char), SIZE_2, f_out);
 	fclose(f_out);
 
 	return PSNR;
