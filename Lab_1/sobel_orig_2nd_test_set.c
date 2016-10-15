@@ -7,6 +7,14 @@
 #include <time.h>
 #include <errno.h>
 
+/*
+Loop interchange
+Loop unrolling
+Loop fusion
+Function Inlining
+Common subexpresion elimination
+*/
+
 #define SIZE	4096
 #define INPUT_FILE	"input.grey"
 #define OUTPUT_FILE	"output_sobel.grey"
@@ -40,10 +48,17 @@ unsigned char input[SIZE*SIZE], output[SIZE*SIZE], golden[SIZE*SIZE];
 int convolution2D(int posy, int posx, const unsigned char *input, char operator[][3]) {
 	int i, j, res;
 
+	//Loop interchange 1st stage
+	//Loop unrolling 2nd stage 
 	res = 0;
 	for (i = -1; i <= 1; i++) {
-		for (j = -1; j <= 1; j++) {
+		for (j = -1; j <= 1; j+=3) {
 			res += input[(posy + i)*SIZE + posx + j] * operator[i+1][j+1];
+
+			res += input[(posy + i)*SIZE + posx + (j+1)] * operator[i+1][j+2];
+
+			res += input[(posy + i)*SIZE + posx + (j+2)] * operator[i+1][j+3];
+
 		}
 	}
 	return(res);
@@ -154,7 +169,6 @@ int main(int argc, char* argv[])
 	double PSNR;
 	PSNR = sobel(input, output, golden);
 	printf("PSNR of original Sobel and computed Sobel image: %g\n", PSNR);
-	printf("A visualization of the sobel filter can be found at " OUTPUT_FILE ", or you can run 'make image' to get the jpg\n");
 
 	return 0;
 }

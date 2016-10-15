@@ -2,7 +2,7 @@
 # ARE NOT EQUIVALENT to tabs. The line after a rule starts with a tab!
 
 #Add any executable you want to be created here.
-EXECUTABLES	= sobel_orig_no_change
+EXECUTABLES	= sobel_orig_2nd_test_set
 
 #This is the compiler to use
 CC = icc
