@@ -107,6 +107,7 @@ double sobel(unsigned char *input, unsigned char *output, unsigned char *golden)
 			/* Apply the sobel filter and calculate the magnitude *
 			 * of the derivative.								  */
 			//function inlining 3rd stage
+			//loop fusion 4th stage
 			int k, z, horiz_res, vert_res;
  			horiz_res = 0;
  			vert_res = 0;
