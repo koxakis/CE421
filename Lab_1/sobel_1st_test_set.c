@@ -1,13 +1,12 @@
 // This will apply the sobel filter and return the PSNR between the golden sobel and the produced sobel
 // sobelized image
-
-//solitify testing methodology
-//SIZE*SIZE common subexpresion elimination
-//Posible Loop interchange
-//function inlining
-//Loop fusion
-//loop unrolling
-//Minimize prints to screen
+/*
+SIZE*SIZE common subexpresion elimination
+Posible Loop interchange
+function inlining
+Loop fusion
+loop unrolling
+*/
 
 #include <stdio.h>
 #include <math.h>

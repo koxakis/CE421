@@ -1,12 +1,5 @@
 // This will apply the sobel filter and return the PSNR between the golden sobel and the produced sobel
 // sobelized image
-#include <stdio.h>
-#include <math.h>
-#include <string.h>
-#include <stdlib.h>
-#include <time.h>
-#include <errno.h>
-
 /*
 Loop interchange
 Loop unrolling
@@ -14,6 +7,13 @@ Function Inlining
 Loop fusion
 Common subexpresion elimination
 */
+
+#include <stdio.h>
+#include <math.h>
+#include <string.h>
+#include <stdlib.h>
+#include <time.h>
+#include <errno.h>
 
 //Common subexpresion elimination 5th stage
 #define SIZE	4096
