@@ -41,27 +41,6 @@ int convolution2D(int posy, int posx, const unsigned char *input, char operator[
 * order (element after element within each row and row after row. 			*/
 unsigned char input[SIZE_2], output[SIZE_2], golden[SIZE_2];
 
-
-/* Implement a 2D convolution of the matrix with the operator */
-/* posy and posx correspond to the vertical and horizontal disposition of the *
-* pixel we process in the original image, input is the input image and       *
-* operator the operator we apply (horizontal or vertical). The function ret. *
-* value is the convolution of the operator with the neighboring pixels of the*
-* pixel we process.														  */
-/*int convolution2D(int posy, int posx, const unsigned char *input, char operator[][3]) {
-	int i, j, res;
-
-	//Posible Loop interchange
-	res = 0;
-	for (i = -1; i <= 1; i++) {
-		for (j = -1; j <= 1; j++) {
-			res += input[(posy + i)*SIZE + posx + j] * operator[i+1][j+1];
-		}
-	}
-	return(res);
-} */
-
-
 /* The main computational function of the program. The input, output and *
 * golden arguments are pointers to the arrays used to store the input   *
 * image, the output produced by the algorithm and the output used as    *
@@ -131,6 +110,13 @@ double sobel(unsigned char *input, unsigned char *output, unsigned char *golden)
 			vert_res = 0;
 			//Horizontal oporations
 			//Vertical oporations
+			/* Implement a 2D convolution of the matrix with the operator */
+			/* posy and posx correspond to the vertical and horizontal disposition of the *
+			* pixel we process in the original image, input is the input image and       *
+			* operator the operator we apply (horizontal or vertical). The function ret. *
+			* value is the convolution of the operator with the neighboring pixels of the*
+			* pixel we process.														  */
+
 			for (k = -1; k <= 1; k++) {
 				for (z = -1; z <= 1; z+=3) {
 					horiz_res += input[(i + k)*SIZE + j + z] * horiz_operator[k+1][z+1];

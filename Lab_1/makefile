@@ -8,7 +8,7 @@ EXECUTABLES	= sobel_orig_2nd_test_set
 CC = icc
 
 #These are the flags passed to the compiler. Change accordingly
-CFLAGS = -Wall -O0
+CFLAGS = -Wall -fast -xhost
 
 #These are the flags passed to the linker. Nothing in our case
 LDFLAGS = -lm
