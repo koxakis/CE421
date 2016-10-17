@@ -125,7 +125,7 @@ double sobel(unsigned char *input, unsigned char *output, unsigned char *golden)
 					vert_res += input[(i + k)*SIZE + j + (z+2)] * vert_operator[k+1][z+3];
  				}
  			}
- 			p = pow( horiz_res, 2) + pow( vert_res, 2);
+ 			p = ( horiz_res*horiz_res) + ( vert_res*vert_res);
  			res = (int)sqrt(p);
 			/* If the resulting value is greater than 255, clip it *
 			 * to 255.											   */
@@ -141,13 +141,13 @@ double sobel(unsigned char *input, unsigned char *output, unsigned char *golden)
 	//Loop unrolling 2nd stage
 	for (i=1; i<SIZE-1; i++) {
 		for ( j=1; j<SIZE-1; j+=3 ) {
-			t = pow((output[i*SIZE+j] - golden[i*SIZE+j]),2);
+			t = ((output[i*SIZE+j] - golden[i*SIZE+j]) * (output[i*SIZE+j] - golden[i*SIZE+j]));
 			PSNR += t;
 
-			t = pow((output[i*SIZE+(j+1)] - golden[i*SIZE+(j+1)]),2);
+			t = ((output[i*SIZE+(j+1)] - golden[i*SIZE+(j+1)]) * (output[i*SIZE+(j+1)] - golden[i*SIZE+(j+1)]));
 			PSNR += t;
 
-			t = pow((output[i*SIZE+(j+2)] - golden[i*SIZE+(j+2)]),2);
+			t =((output[i*SIZE+(j+2)] - golden[i*SIZE+(j+2)])*(output[i*SIZE+(j+2)] - golden[i*SIZE+(j+2)]));
 			PSNR += t;
 		}
 	}

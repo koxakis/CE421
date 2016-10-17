@@ -5,8 +5,8 @@
 *.elf
 
 sobel_orig_no_change
-sobel_orig_2nd_test_set
-sobel_orig
+sobel_2nd_test_set
+sobel_1st_test_set
 *.grey
 *.jpg
 outfile.txt
