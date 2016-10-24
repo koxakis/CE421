@@ -4,6 +4,7 @@
 *.obj
 *.elf
 
+samples/
 sobel_orig_no_change
 sobel_2nd_test_set
 sobel_1st_test_set
