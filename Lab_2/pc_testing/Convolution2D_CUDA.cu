@@ -74,7 +74,10 @@ convolutionRowDevice(float *d_Dst, float *d_Src, float *d_Filter,int imageW, int
 {
 	//printf("Hello world from the convolutionRowDevice! block=%d, thread=%d\n", blockIdx.x, threadIdx.x);
 	int x, y, k;
+	int x_pos = blockDim.x * blockIdx.x + threadIdx.x;
+	int y_pos = blockDim.y * blockIdx.y + threadIdx.y;
 
+	printf("Row! block=%d, thread=%d, x=%d, y=%d\n", blockIdx.x, threadIdx.x, x_pos, y_pos);
 	for (y = 0; y < imageH; y++) {
 		for (x = 0; x < imageW; x++) {
 			float sum = 0;
@@ -96,6 +99,10 @@ __global__ void
 convolutionColumnDevice(float *d_Dst, float *d_Src, float *d_Filter,int imageW, int imageH, int filterR)
 {
 	int x, y, k;
+	int x_pos = blockDim.x * blockIdx.x + threadIdx.x;
+	int y_pos = blockDim.y * blockIdx.y + threadIdx.y;
+
+	printf("Column! block=%d, thread=%d, x=%d, y=%d\n", blockIdx.x, threadIdx.x, x_pos, y_pos);
 
 	for (y = 0; y < imageH; y++) {
 		for (x = 0; x < imageW; x++) {
@@ -123,7 +130,8 @@ int main(int argc, char **argv) {
 	*h_Filter,
 	*h_Input,
 	*h_Buffer,
-	*h_OutputCPU;
+	*h_OutputCPU,
+	*h_OutputGPU;
 
 	float
 	*d_Filter,
@@ -168,8 +176,9 @@ int main(int argc, char **argv) {
 	h_Input     = (float *)malloc(imageW * imageH * sizeof(float));
 	h_Buffer    = (float *)malloc(imageW * imageH * sizeof(float));
 	h_OutputCPU = (float *)malloc(imageW * imageH * sizeof(float));
+	h_OutputGPU = (float *)malloc(imageW * imageH * sizeof(float));
 
-	if ( h_Filter == NULL || h_Input == NULL || h_Buffer == NULL || h_OutputCPU == NULL) {
+	if ( h_Filter == NULL || h_Input == NULL || h_Buffer == NULL || h_OutputCPU == NULL || h_OutputGPU == NULL) {
 		fprintf(stderr, "Failed to allocate host vectors!\n");
         exit(EXIT_FAILURE);
 	}
@@ -228,7 +237,7 @@ int main(int argc, char **argv) {
 		exit(EXIT_FAILURE);
 	}
 
-	err = cudaMemcpy(d_Input, h_Input, FILTER_LENGTH * sizeof(float), cudaMemcpyHostToDevice);
+	err = cudaMemcpy(d_Input, h_Input, imageW * imageH * sizeof(float), cudaMemcpyHostToDevice);
 	if (err != cudaSuccess)
 	{
 		fprintf(stderr, "Failed to copy vector A from host to device (error code %s)!\n", cudaGetErrorString(err));
@@ -250,7 +259,7 @@ int main(int argc, char **argv) {
 	// Error code to check return values for CUDA calls
 
 	// Kernel paramiters prep
-	int threadsPerBlock = 256;
+	int threadsPerBlock = 1024;
 	int blocksPerGrid = 1;
 	//int blocksPerGrid =(imageH + threadsPerBlock - 1) / threadsPerBlock;
 
@@ -279,6 +288,28 @@ int main(int argc, char **argv) {
 		fprintf(stderr, "Failed to launch convolutionColumnDevice kernel (error code %s)!\n", cudaGetErrorString(err));
 		exit(EXIT_FAILURE);
 	}
+
+	// Copy the device result vector in device memory to the host result vector
+    // in host memory.
+    printf("Copy output data from the CUDA device to the host memory\n");
+    err = cudaMemcpy(h_OutputGPU, d_OutputD, imageW * imageH * sizeof(float), cudaMemcpyDeviceToHost);
+
+    if (err != cudaSuccess)
+    {
+        fprintf(stderr, "Failed to copy result from device to host (error code %s)!\n", cudaGetErrorString(err));
+        exit(EXIT_FAILURE);
+    }
+
+	printf(" Comparing the outputs\n");
+    double sum = 0, delta = 0;
+
+    for (unsigned i = 0; i < imageW * imageH; i++)
+    {
+        delta += (h_OutputGPU[i] - h_OutputCPU[i]) * (h_OutputGPU[i] - h_OutputCPU[i]);
+        sum   += h_OutputCPU[i] * h_OutputCPU[i];
+    }
+	double L2norm = sqrt(delta / sum);
+    printf(" Relative L2 norm: %E\n\n", L2norm);
 
 
 	// free all the allocated memory
