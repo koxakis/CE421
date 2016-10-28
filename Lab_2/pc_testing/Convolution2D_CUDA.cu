@@ -73,57 +73,59 @@ __global__ void
 convolutionRowDevice(float *d_Dst, float *d_Src, float *d_Filter,int imageW, int imageH, int filterR)
 {
 	//printf("Hello world from the convolutionRowDevice! block=%d, thread=%d\n", blockIdx.x, threadIdx.x);
-	int x, y, k;
-	int x_pos = blockDim.x * blockIdx.x + threadIdx.x;
-	int y_pos = blockDim.y * blockIdx.y + threadIdx.y;
+	//int x, y,
+	int k;
+	int col = blockDim.x * blockIdx.x + threadIdx.x;
+	int row = blockDim.y * blockIdx.y + threadIdx.y;
 
-	for (y = 0; y < imageH; y++) {
-		for (x = 0; x < imageW; x++) {
+	//for (y = 0; y < imageH; y++) {
+		//for (x = 0; x < imageW; x++) {
 			float sum = 0;
 
 			for (k = -filterR; k <= filterR; k++) {
-				int d = x_pos + k;
+				int d = col + k;
 
 				if (d >= 0 && d < imageW) {
 					//sum += d_Src[y * imageW + d] * d_Filter[filterR - k];
 					//sum += c_Kernel[KERNEL_RADIUS - j] * s_Data[threadIdx.y][threadIdx.x + i * ROWS_BLOCKDIM_X + j];
-					sum += d_Src[filterR - k] * d_Src[y_pos + d];
-					printf(" %d %d\n", filterR - k, y_pos + d);
+					sum += d_Filter[filterR - k] * d_Src[d + row * blockDim.y];
+					//printf(" %d %d\n", filterR - k, y_pos + d);
 				}
 
 				//d_Dst[y * imageW + x] = sum;
-				d_Dst[y * x_pos] = sum;
-				printf(" %d\n", y * x_pos);
+				d_Dst[col + row * blockDim.y] = sum;
+				//printf(" %d\n", y * x_pos);
 			}
-		}
-	}
+		//}
+	//}
 }
 
 __global__ void
 convolutionColumnDevice(float *d_Dst, float *d_Src, float *d_Filter,int imageW, int imageH, int filterR)
 {
-	int x, y, k;
-	int x_pos = blockDim.x * blockIdx.x + threadIdx.x;
-	int y_pos = blockDim.y * blockIdx.y + threadIdx.y;
+	//int x, y,
+	int k;
+	int col = blockDim.x * blockIdx.x + threadIdx.x;
+	int row = blockDim.y * blockIdx.y + threadIdx.y;
 
-	for (y = 0; y < imageH; y++) {
-		for (x = 0; x < imageW; x++) {
+	//for (y = 0; y < imageH; y++) {
+		//for (x = 0; x < imageW; x++) {
 			float sum = 0;
 
 			for (k = -filterR; k <= filterR; k++) {
-				int d = y + k;
+				int d = row + k;
 
 				if (d >= 0 && d < imageH) {
 					//sum += h_Src[d * imageW + x] * h_Filter[filterR - k];
-					//sum += c_Kernel[KERNEL_RADIUS - j] * s_Data[threadIdx.y][threadIdx.x + i * ROWS_BLOCKDIM_X + j];
-					sum += d_Src[filterR - k] * d_Src[y_pos + d];
+					//sum += c_Kernel[KERNEL_RADIUS - j] * s_Data[threadIdx.x][threadIdx.y + i * COLUMNS_BLOCKDIM_Y + j];
+					sum += d_Filter[filterR - k] * d_Src[col + d * blockDim.x];
 				}
-
+				//d_Dst[i * COLUMNS_BLOCKDIM_Y * pitch] = sum;
 				//h_Dst[y * imageW + x] = sum;
-				d_Dst[y * x_pos] = sum;
+				d_Dst[col + row * blockDim.x] = sum;
 			}
-		}
-	}
+		//}
+	//}
 
 
 }
@@ -266,11 +268,10 @@ int main(int argc, char **argv) {
 	// Error code to check return values for CUDA calls
 
 	// Kernel paramiters prep
-	int threadsPerBlock = 4;
+	int threadsPerBlock = 16;
 	int blocksPerGrid = 1;
 	dim3 threads(threadsPerBlock, threadsPerBlock);
-	dim3 grid(1,1);
-	//int blocksPerGrid =(imageH + threadsPerBlock - 1) / threadsPerBlock;
+	dim3 grid(blocksPerGrid,blocksPerGrid);
 
 	// convolution by rows device
 	printf("CUDA kernel launch with %d blocks of %d threads\n", blocksPerGrid*blocksPerGrid, threadsPerBlock*threadsPerBlock);
@@ -278,13 +279,12 @@ int main(int argc, char **argv) {
 	convolutionRowDevice<<<grid, threads>>>(d_Buffer, d_Input, d_Filter, imageW, imageH, filter_radius);
 	err = cudaGetLastError();
 
-	cudaDeviceSynchronize();
-
 	if (err != cudaSuccess)
 	{
 		fprintf(stderr, "Failed to launch convolutionRowDevice kernel (error code %s)!\n", cudaGetErrorString(err));
 		exit(EXIT_FAILURE);
 	}
+	cudaDeviceSynchronize();
 
 	// convolution by columns device
 	printf("CUDA kernel launch with %d blocks of %d threads\n", blocksPerGrid*blocksPerGrid, threadsPerBlock*threadsPerBlock);
@@ -292,13 +292,12 @@ int main(int argc, char **argv) {
 	convolutionColumnDevice<<<grid, threads>>>(d_OutputD, d_Buffer, d_Filter, imageW, imageH, filter_radius);
 	err = cudaGetLastError();
 
-	cudaDeviceSynchronize();
-
 	if (err != cudaSuccess)
 	{
 		fprintf(stderr, "Failed to launch convolutionColumnDevice kernel (error code %s)!\n", cudaGetErrorString(err));
 		exit(EXIT_FAILURE);
 	}
+	cudaDeviceSynchronize();
 
 	// Copy the device result vector in device memory to the host result vector
     // in host memory.
@@ -310,6 +309,13 @@ int main(int argc, char **argv) {
         fprintf(stderr, "Failed to copy result from device to host (error code %s)!\n", cudaGetErrorString(err));
         exit(EXIT_FAILURE);
     }
+	for (unsigned i = 0; i < imageH * imageW; i++) {
+		printf("%lf ?= %lf \n", h_OutputCPU[i] , h_OutputGPU[i]);
+		if ( h_OutputCPU[i] != h_OutputGPU[i]){
+			printf("Algorithm not correct \n" );
+			break;
+		}
+	}
 
 	printf(" Comparing the outputs\n");
     double sum = 0, delta = 0;
