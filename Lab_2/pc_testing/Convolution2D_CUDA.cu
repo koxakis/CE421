@@ -77,19 +77,23 @@ convolutionRowDevice(float *d_Dst, float *d_Src, float *d_Filter,int imageW, int
 	int x_pos = blockDim.x * blockIdx.x + threadIdx.x;
 	int y_pos = blockDim.y * blockIdx.y + threadIdx.y;
 
-	printf("Row! block=%d, thread=%d, x=%d, y=%d\n", blockIdx.x, threadIdx.x, x_pos, y_pos);
 	for (y = 0; y < imageH; y++) {
 		for (x = 0; x < imageW; x++) {
 			float sum = 0;
 
 			for (k = -filterR; k <= filterR; k++) {
-				int d = x + k;
+				int d = x_pos + k;
 
 				if (d >= 0 && d < imageW) {
-					sum += d_Src[y * imageW + d] * d_Filter[filterR - k];
+					//sum += d_Src[y * imageW + d] * d_Filter[filterR - k];
+					//sum += c_Kernel[KERNEL_RADIUS - j] * s_Data[threadIdx.y][threadIdx.x + i * ROWS_BLOCKDIM_X + j];
+					sum += d_Src[filterR - k] * d_Src[y_pos + d];
+					printf(" %d %d\n", filterR - k, y_pos + d);
 				}
 
-				d_Dst[y * imageW + x] = sum;
+				//d_Dst[y * imageW + x] = sum;
+				d_Dst[y * x_pos] = sum;
+				printf(" %d\n", y * x_pos);
 			}
 		}
 	}
@@ -102,8 +106,6 @@ convolutionColumnDevice(float *d_Dst, float *d_Src, float *d_Filter,int imageW, 
 	int x_pos = blockDim.x * blockIdx.x + threadIdx.x;
 	int y_pos = blockDim.y * blockIdx.y + threadIdx.y;
 
-	printf("Column! block=%d, thread=%d, x=%d, y=%d\n", blockIdx.x, threadIdx.x, x_pos, y_pos);
-
 	for (y = 0; y < imageH; y++) {
 		for (x = 0; x < imageW; x++) {
 			float sum = 0;
@@ -112,13 +114,18 @@ convolutionColumnDevice(float *d_Dst, float *d_Src, float *d_Filter,int imageW, 
 				int d = y + k;
 
 				if (d >= 0 && d < imageH) {
-					sum += d_Src[d * imageW + x] * d_Filter[filterR - k];
+					//sum += h_Src[d * imageW + x] * h_Filter[filterR - k];
+					//sum += c_Kernel[KERNEL_RADIUS - j] * s_Data[threadIdx.y][threadIdx.x + i * ROWS_BLOCKDIM_X + j];
+					sum += d_Src[filterR - k] * d_Src[y_pos + d];
 				}
 
-				d_Dst[y * imageW + x] = sum;
+				//h_Dst[y * imageW + x] = sum;
+				d_Dst[y * x_pos] = sum;
 			}
 		}
 	}
+
+
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -204,7 +211,7 @@ int main(int argc, char **argv) {
 	err = cudaMalloc((void **)&d_Buffer, imageW * imageH * sizeof(float));
     if (err != cudaSuccess)
     {
-        fprintf(stderr, "Failed to allocate device vector A (error code %s)!\n", cudaGetErrorString(err));
+        fprintf(stderr, "Failed to allocate device Buffer (error code %s)!\n", cudaGetErrorString(err));
         exit(EXIT_FAILURE);
     }
 
@@ -212,7 +219,7 @@ int main(int argc, char **argv) {
 	err = cudaMalloc((void **)&d_OutputD, imageW * imageH * sizeof(float));
     if (err != cudaSuccess)
     {
-        fprintf(stderr, "Failed to allocate device vector A (error code %s)!\n", cudaGetErrorString(err));
+        fprintf(stderr, "Failed to allocate device Output (error code %s)!\n", cudaGetErrorString(err));
         exit(EXIT_FAILURE);
     }
 
@@ -233,14 +240,14 @@ int main(int argc, char **argv) {
 	err = cudaMemcpy(d_Filter, h_Filter, FILTER_LENGTH * sizeof(float), cudaMemcpyHostToDevice);
 	if (err != cudaSuccess)
 	{
-		fprintf(stderr, "Failed to copy vector A from host to device (error code %s)!\n", cudaGetErrorString(err));
+		fprintf(stderr, "Failed to copy filter from host to device (error code %s)!\n", cudaGetErrorString(err));
 		exit(EXIT_FAILURE);
 	}
 
 	err = cudaMemcpy(d_Input, h_Input, imageW * imageH * sizeof(float), cudaMemcpyHostToDevice);
 	if (err != cudaSuccess)
 	{
-		fprintf(stderr, "Failed to copy vector A from host to device (error code %s)!\n", cudaGetErrorString(err));
+		fprintf(stderr, "Failed to copy input from host to device (error code %s)!\n", cudaGetErrorString(err));
 		exit(EXIT_FAILURE);
 	}
 
@@ -259,13 +266,16 @@ int main(int argc, char **argv) {
 	// Error code to check return values for CUDA calls
 
 	// Kernel paramiters prep
-	int threadsPerBlock = 1024;
+	int threadsPerBlock = 4;
 	int blocksPerGrid = 1;
+	dim3 threads(threadsPerBlock, threadsPerBlock);
+	dim3 grid(1,1);
 	//int blocksPerGrid =(imageH + threadsPerBlock - 1) / threadsPerBlock;
 
 	// convolution by rows device
-	printf("CUDA kernel launch with %d blocks of %d threads\n", blocksPerGrid, threadsPerBlock);
-	convolutionRowDevice<<<blocksPerGrid, threadsPerBlock>>>(d_Buffer, d_Input, d_Filter, imageW, imageH, filter_radius);
+	printf("CUDA kernel launch with %d blocks of %d threads\n", blocksPerGrid*blocksPerGrid, threadsPerBlock*threadsPerBlock);
+	//convolutionRowDevice<<<blocksPerGrid, threadsPerBlock>>>(d_Buffer, d_Input, d_Filter, imageW, imageH, filter_radius);
+	convolutionRowDevice<<<grid, threads>>>(d_Buffer, d_Input, d_Filter, imageW, imageH, filter_radius);
 	err = cudaGetLastError();
 
 	cudaDeviceSynchronize();
@@ -277,8 +287,9 @@ int main(int argc, char **argv) {
 	}
 
 	// convolution by columns device
-	printf("CUDA kernel launch with %d blocks of %d threads\n", blocksPerGrid, threadsPerBlock);
-	convolutionColumnDevice<<<blocksPerGrid, threadsPerBlock>>>(d_OutputD, d_Buffer, d_Filter, imageW, imageH, filter_radius);
+	printf("CUDA kernel launch with %d blocks of %d threads\n", blocksPerGrid*blocksPerGrid, threadsPerBlock*threadsPerBlock);
+	//convolutionColumnDevice<<<blocksPerGrid, threadsPerBlock>>>(d_OutputD, d_Buffer, d_Filter, imageW, imageH, filter_radius);
+	convolutionColumnDevice<<<grid, threads>>>(d_OutputD, d_Buffer, d_Filter, imageW, imageH, filter_radius);
 	err = cudaGetLastError();
 
 	cudaDeviceSynchronize();
@@ -307,6 +318,10 @@ int main(int argc, char **argv) {
     {
         delta += (h_OutputGPU[i] - h_OutputCPU[i]) * (h_OutputGPU[i] - h_OutputCPU[i]);
         sum   += h_OutputCPU[i] * h_OutputCPU[i];
+		if ( delta > accuracy){
+			printf("The accuracy is not good enough\n" );
+			break;
+		}
     }
 	double L2norm = sqrt(delta / sum);
     printf(" Relative L2 norm: %E\n\n", L2norm);
@@ -317,6 +332,34 @@ int main(int argc, char **argv) {
 	free(h_Buffer);
 	free(h_Input);
 	free(h_Filter);
+
+	err = cudaFree(d_OutputD);
+    if (err != cudaSuccess)
+    {
+        fprintf(stderr, "Failed to free device output (error code %s)!\n", cudaGetErrorString(err));
+        exit(EXIT_FAILURE);
+    }
+
+	err = cudaFree(d_Buffer);
+	if (err != cudaSuccess)
+	{
+		fprintf(stderr, "Failed to free device buffer (error code %s)!\n", cudaGetErrorString(err));
+		exit(EXIT_FAILURE);
+	}
+
+	err = cudaFree(d_Input);
+	if (err != cudaSuccess)
+	{
+		fprintf(stderr, "Failed to free device input (error code %s)!\n", cudaGetErrorString(err));
+		exit(EXIT_FAILURE);
+	}
+
+	err = cudaFree(d_Filter);
+	if (err != cudaSuccess)
+	{
+		fprintf(stderr, "Failed to free device filter (error code %s)!\n", cudaGetErrorString(err));
+		exit(EXIT_FAILURE);
+	}
 
 	// Do a device reset just in case... Bgalte to sxolio otan ylopoihsete CUDA
 	cudaDeviceReset();

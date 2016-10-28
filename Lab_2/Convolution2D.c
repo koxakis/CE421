@@ -1,30 +1,27 @@
 /*
-* This sample implements a separable convolution
+* This sample implements a separable convolution 
 * of a 2D image with an arbitrary filter.
 */
 
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <cuda_runtime.h>
-#include <helper_cuda.h>
-
 unsigned int filter_radius;
 
 #define FILTER_LENGTH 	(2 * filter_radius + 1)
 #define ABS(val)  	((val)<0.0 ? (-(val)) : (val))
-#define accuracy  	0.00005
+#define accuracy  	0.00005 
 
-
+ 
 
 ////////////////////////////////////////////////////////////////////////////////
 // Reference row convolution filter
 ////////////////////////////////////////////////////////////////////////////////
-void convolutionRowCPU(float *h_Dst, float *h_Src, float *h_Filter,
+void convolutionRowCPU(float *h_Dst, float *h_Src, float *h_Filter, 
                        int imageW, int imageH, int filterR) {
 
   int x, y, k;
-
+                      
   for (y = 0; y < imageH; y++) {
     for (x = 0; x < imageW; x++) {
       float sum = 0;
@@ -34,13 +31,13 @@ void convolutionRowCPU(float *h_Dst, float *h_Src, float *h_Filter,
 
         if (d >= 0 && d < imageW) {
           sum += h_Src[y * imageW + d] * h_Filter[filterR - k];
-        }
+        }     
 
         h_Dst[y * imageW + x] = sum;
       }
     }
   }
-
+        
 }
 
 
@@ -51,7 +48,7 @@ void convolutionColumnCPU(float *h_Dst, float *h_Src, float *h_Filter,
     			   int imageW, int imageH, int filterR) {
 
   int x, y, k;
-
+  
   for (y = 0; y < imageH; y++) {
     for (x = 0; x < imageW; x++) {
       float sum = 0;
@@ -61,20 +58,21 @@ void convolutionColumnCPU(float *h_Dst, float *h_Src, float *h_Filter,
 
         if (d >= 0 && d < imageH) {
           sum += h_Src[d * imageW + x] * h_Filter[filterR - k];
-        }
-
+        }   
+ 
         h_Dst[y * imageW + x] = sum;
       }
     }
   }
-
+    
 }
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // Main program
 ////////////////////////////////////////////////////////////////////////////////
 int main(int argc, char **argv) {
-
+    
     float
     *h_Filter,
     *h_Input,
@@ -91,7 +89,7 @@ int main(int argc, char **argv) {
 
     // Ta imageW, imageH ta dinei o xrhsths kai thewroume oti einai isa,
     // dhladh imageW = imageH = N, opou to N to dinei o xrhsths.
-    // Gia aplothta thewroume tetragwnikes eikones.
+    // Gia aplothta thewroume tetragwnikes eikones.  
 
     printf("Enter image size. Should be a power of two and greater than %d : ", FILTER_LENGTH);
     scanf("%d", &imageW);
@@ -128,7 +126,8 @@ int main(int argc, char **argv) {
 
 
     // Kanete h sugrish anamesa se GPU kai CPU kai an estw kai kapoio apotelesma xeperna thn akriveia
-    // pou exoume orisei, tote exoume sfalma kai mporoume endexomenws na termatisoume to programma mas
+    // pou exoume orisei, tote exoume sfalma kai mporoume endexomenws na termatisoume to programma mas  
+
 
 
     // free all the allocated memory
