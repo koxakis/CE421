@@ -257,7 +257,7 @@ int main(int argc, char **argv) {
 	// Error code to check return values for CUDA calls
 
 	// Kernel paramiters prep
-	int threadsPerBlock = 16;
+	int threadsPerBlock = N;
 	int blocksPerGrid = 1;
 	dim3 threads(threadsPerBlock, threadsPerBlock);
 	dim3 grid(blocksPerGrid,blocksPerGrid);
@@ -287,7 +287,6 @@ int main(int argc, char **argv) {
 	cudaCheckError();
 
 	for (unsigned i = 0; i < imageH * imageW; i++) {
-		printf("%lf ?= %lf \n", h_OutputCPU[i] , h_OutputGPU[i]);
 		if ( h_OutputCPU[i] != h_OutputGPU[i]){
 			printf("Algorithm not correct \n" );
 			break;
