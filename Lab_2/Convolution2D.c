@@ -35,7 +35,7 @@ void convolutionRowCPU(float *h_Dst, float *h_Src, float *h_Filter,
         }
 
         h_Dst[y * imageW + x] = sum;
-			printf("%d %d\n", y * imageW + x);
+			printf("%d\n", y * imageW + x);
       }
     }
   }
