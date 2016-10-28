@@ -86,26 +86,17 @@ convolutionRowDevice(float *d_Dst, float *d_Src, float *d_Filter,int imageW, int
 	int col = blockDim.x * blockIdx.x + threadIdx.x;
 	int row = blockDim.y * blockIdx.y + threadIdx.y;
 
-	//for (y = 0; y < imageH; y++) {
-		//for (x = 0; x < imageW; x++) {
-			float sum = 0;
+	float sum = 0;
 
-			for (k = -filterR; k <= filterR; k++) {
-				int d = col + k;
+	for (k = -filterR; k <= filterR; k++) {
+		int d = col + k;
 
-				if (d >= 0 && d < imageW) {
-					//sum += d_Src[y * imageW + d] * d_Filter[filterR - k];
-					//sum += c_Kernel[KERNEL_RADIUS - j] * s_Data[threadIdx.y][threadIdx.x + i * ROWS_BLOCKDIM_X + j];
-					sum += d_Filter[filterR - k] * d_Src[d + row * blockDim.y];
-					//printf(" %d %d\n", filterR - k, y_pos + d);
-				}
+		if (d >= 0 && d < imageW) {
+			sum += d_Filter[filterR - k] * d_Src[d + row * blockDim.y];
+		}
+		d_Dst[col + row * blockDim.y] = sum;
+	}
 
-				//d_Dst[y * imageW + x] = sum;
-				d_Dst[col + row * blockDim.y] = sum;
-				//printf(" %d\n", y * x_pos);
-			}
-		//}
-	//}
 }
 
 __global__ void
@@ -116,25 +107,16 @@ convolutionColumnDevice(float *d_Dst, float *d_Src, float *d_Filter,int imageW, 
 	int col = blockDim.x * blockIdx.x + threadIdx.x;
 	int row = blockDim.y * blockIdx.y + threadIdx.y;
 
-	//for (y = 0; y < imageH; y++) {
-		//for (x = 0; x < imageW; x++) {
-			float sum = 0;
+	float sum = 0;
 
-			for (k = -filterR; k <= filterR; k++) {
-				int d = row + k;
+	for (k = -filterR; k <= filterR; k++) {
+		int d = row + k;
 
-				if (d >= 0 && d < imageH) {
-					//sum += h_Src[d * imageW + x] * h_Filter[filterR - k];
-					//sum += c_Kernel[KERNEL_RADIUS - j] * s_Data[threadIdx.x][threadIdx.y + i * COLUMNS_BLOCKDIM_Y + j];
-					sum += d_Filter[filterR - k] * d_Src[col + d * blockDim.x];
-				}
-				//d_Dst[i * COLUMNS_BLOCKDIM_Y * pitch] = sum;
-				//h_Dst[y * imageW + x] = sum;
-				d_Dst[col + row * blockDim.x] = sum;
-			}
-		//}
-	//}
-
+		if (d >= 0 && d < imageH) {
+			sum += d_Filter[filterR - k] * d_Src[col + d * blockDim.x];
+		}
+		d_Dst[col + row * blockDim.x] = sum;
+	}
 
 }
 
