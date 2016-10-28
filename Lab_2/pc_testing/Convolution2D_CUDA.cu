@@ -169,6 +169,7 @@ int main(int argc, char **argv) {
 
 	if ( argc != 3){
 		printf("Missmach in argument input \n");
+		printf("1st argument: Image Size \n 2nd argument: Filter Radius \n");
 		return 0;
 	}
 
@@ -280,7 +281,9 @@ int main(int argc, char **argv) {
 	// Copy the device result vector in device memory to the host result vector
     // in host memory.
     printf("Copy output data from the CUDA device to the host memory\n");
+#ifdef FLOAT
     cudaMemcpy(h_OutputGPU, d_OutputD, imageW * imageH * sizeof(float), cudaMemcpyDeviceToHost);
+#endif
 	cudaCheckError();
 
 	for (unsigned i = 0; i < imageH * imageW; i++) {
@@ -291,7 +294,7 @@ int main(int argc, char **argv) {
 		}
 	}
 
-	printf(" Comparing the outputs\n");
+	printf("\nComparing the outputs\n");
     double sum = 0, delta = 0;
 
     for (unsigned i = 0; i < imageW * imageH; i++)
