@@ -12,7 +12,15 @@ unsigned int filter_radius;
 #define ABS(val)  	((val)<0.0 ? (-(val)) : (val))
 #define accuracy  	0.00005
 
+#define FLOAT
 
+#define cudaCheckError() {                                                                       \
+        cudaError_t e=cudaGetLastError();                                                        \
+        if(e!=cudaSuccess) {                                                                     \
+            printf("Cuda failure %s:%d: '%s'\n",__FILE__,__LINE__,cudaGetErrorString(e));        \
+            exit(EXIT_FAILURE);                                                                  \
+        }                                                                                        \
+    }
 
 ////////////////////////////////////////////////////////////////////////////////
 // Reference row convolution filter
@@ -135,6 +143,7 @@ convolutionColumnDevice(float *d_Dst, float *d_Src, float *d_Filter,int imageW, 
 ////////////////////////////////////////////////////////////////////////////////
 int main(int argc, char **argv) {
 
+#ifdef FLOAT
 	float
 	*h_Filter,
 	*h_Input,
@@ -147,13 +156,12 @@ int main(int argc, char **argv) {
 	*d_Input,
 	*d_Buffer,
 	*d_OutputD;
+#endif
 
 	int imageW;
 	int imageH;
 	unsigned int N;
 	unsigned int i;
-
-	cudaError_t err = cudaSuccess;
 
 	// Ta imageW, imageH ta dinei o xrhsths kai thewroume oti einai isa,
 	// dhladh imageW = imageH = N, opou to N to dinei o xrhsths.
@@ -181,6 +189,8 @@ int main(int argc, char **argv) {
 	printf("Allocating and initializing host arrays...\n");
 	// Tha htan kalh idea na elegxete kai to apotelesma twn malloc...
 	// Host mallocs
+
+#ifdef FLOAT
 	h_Filter    = (float *)malloc(FILTER_LENGTH * sizeof(float));
 	h_Input     = (float *)malloc(imageW * imageH * sizeof(float));
 	h_Buffer    = (float *)malloc(imageW * imageH * sizeof(float));
@@ -194,36 +204,20 @@ int main(int argc, char **argv) {
 
 	// Device mallocs
 	d_Filter = NULL;
-	err = cudaMalloc((void **)&d_Filter, FILTER_LENGTH * sizeof(float));
-    if (err != cudaSuccess)
-    {
-        fprintf(stderr, "Failed to allocate device Filter (error code %s)!\n", cudaGetErrorString(err));
-        exit(EXIT_FAILURE);
-    }
+	cudaMalloc((void **)&d_Filter, FILTER_LENGTH * sizeof(float));
+	cudaCheckError();
 
 	d_Input = NULL;
-	err = cudaMalloc((void **)&d_Input, imageW * imageH * sizeof(float));
-    if (err != cudaSuccess)
-    {
-        fprintf(stderr, "Failed to allocate device Input (error code %s)!\n", cudaGetErrorString(err));
-        exit(EXIT_FAILURE);
-    }
+	cudaMalloc((void **)&d_Input, imageW * imageH * sizeof(float));
+	cudaCheckError();
 
 	d_Buffer = NULL;
-	err = cudaMalloc((void **)&d_Buffer, imageW * imageH * sizeof(float));
-    if (err != cudaSuccess)
-    {
-        fprintf(stderr, "Failed to allocate device Buffer (error code %s)!\n", cudaGetErrorString(err));
-        exit(EXIT_FAILURE);
-    }
+	cudaMalloc((void **)&d_Buffer, imageW * imageH * sizeof(float));
+	cudaCheckError();
 
 	d_OutputD = NULL;
-	err = cudaMalloc((void **)&d_OutputD, imageW * imageH * sizeof(float));
-    if (err != cudaSuccess)
-    {
-        fprintf(stderr, "Failed to allocate device Output (error code %s)!\n", cudaGetErrorString(err));
-        exit(EXIT_FAILURE);
-    }
+	cudaMalloc((void **)&d_OutputD, imageW * imageH * sizeof(float));
+	cudaCheckError();
 
 	// to 'h_Filter' apotelei to filtro me to opoio ginetai to convolution kai
 	// arxikopoieitai tuxaia. To 'h_Input' einai h eikona panw sthn opoia ginetai
@@ -239,19 +233,13 @@ int main(int argc, char **argv) {
 	}
 
 	// Transfer Data to Device
-	err = cudaMemcpy(d_Filter, h_Filter, FILTER_LENGTH * sizeof(float), cudaMemcpyHostToDevice);
-	if (err != cudaSuccess)
-	{
-		fprintf(stderr, "Failed to copy filter from host to device (error code %s)!\n", cudaGetErrorString(err));
-		exit(EXIT_FAILURE);
-	}
+	cudaMemcpy(d_Filter, h_Filter, FILTER_LENGTH * sizeof(float), cudaMemcpyHostToDevice);
+	cudaCheckError();
 
-	err = cudaMemcpy(d_Input, h_Input, imageW * imageH * sizeof(float), cudaMemcpyHostToDevice);
-	if (err != cudaSuccess)
-	{
-		fprintf(stderr, "Failed to copy input from host to device (error code %s)!\n", cudaGetErrorString(err));
-		exit(EXIT_FAILURE);
-	}
+	cudaMemcpy(d_Input, h_Input, imageW * imageH * sizeof(float), cudaMemcpyHostToDevice);
+	cudaCheckError();
+
+#endif
 
 
 	// To parakatw einai to kommati pou ekteleitai sthn CPU kai me vash auto prepei na ginei h sugrish me thn GPU.
@@ -275,40 +263,26 @@ int main(int argc, char **argv) {
 
 	// convolution by rows device
 	printf("CUDA kernel launch with %d blocks of %d threads\n", blocksPerGrid*blocksPerGrid, threadsPerBlock*threadsPerBlock);
-	//convolutionRowDevice<<<blocksPerGrid, threadsPerBlock>>>(d_Buffer, d_Input, d_Filter, imageW, imageH, filter_radius);
-	convolutionRowDevice<<<grid, threads>>>(d_Buffer, d_Input, d_Filter, imageW, imageH, filter_radius);
-	err = cudaGetLastError();
 
-	if (err != cudaSuccess)
-	{
-		fprintf(stderr, "Failed to launch convolutionRowDevice kernel (error code %s)!\n", cudaGetErrorString(err));
-		exit(EXIT_FAILURE);
-	}
+	convolutionRowDevice<<<grid, threads>>>(d_Buffer, d_Input, d_Filter, imageW, imageH, filter_radius);
+	cudaCheckError();
+
 	cudaDeviceSynchronize();
 
 	// convolution by columns device
 	printf("CUDA kernel launch with %d blocks of %d threads\n", blocksPerGrid*blocksPerGrid, threadsPerBlock*threadsPerBlock);
-	//convolutionColumnDevice<<<blocksPerGrid, threadsPerBlock>>>(d_OutputD, d_Buffer, d_Filter, imageW, imageH, filter_radius);
-	convolutionColumnDevice<<<grid, threads>>>(d_OutputD, d_Buffer, d_Filter, imageW, imageH, filter_radius);
-	err = cudaGetLastError();
 
-	if (err != cudaSuccess)
-	{
-		fprintf(stderr, "Failed to launch convolutionColumnDevice kernel (error code %s)!\n", cudaGetErrorString(err));
-		exit(EXIT_FAILURE);
-	}
+	convolutionColumnDevice<<<grid, threads>>>(d_OutputD, d_Buffer, d_Filter, imageW, imageH, filter_radius);
+	cudaCheckError();
+
 	cudaDeviceSynchronize();
 
 	// Copy the device result vector in device memory to the host result vector
     // in host memory.
     printf("Copy output data from the CUDA device to the host memory\n");
-    err = cudaMemcpy(h_OutputGPU, d_OutputD, imageW * imageH * sizeof(float), cudaMemcpyDeviceToHost);
+    cudaMemcpy(h_OutputGPU, d_OutputD, imageW * imageH * sizeof(float), cudaMemcpyDeviceToHost);
+	cudaCheckError();
 
-    if (err != cudaSuccess)
-    {
-        fprintf(stderr, "Failed to copy result from device to host (error code %s)!\n", cudaGetErrorString(err));
-        exit(EXIT_FAILURE);
-    }
 	for (unsigned i = 0; i < imageH * imageW; i++) {
 		printf("%lf ?= %lf \n", h_OutputCPU[i] , h_OutputGPU[i]);
 		if ( h_OutputCPU[i] != h_OutputGPU[i]){
@@ -332,40 +306,23 @@ int main(int argc, char **argv) {
 	double L2norm = sqrt(delta / sum);
     printf(" Relative L2 norm: %E\n\n", L2norm);
 
-
 	// free all the allocated memory
 	free(h_OutputCPU);
 	free(h_Buffer);
 	free(h_Input);
 	free(h_Filter);
 
-	err = cudaFree(d_OutputD);
-    if (err != cudaSuccess)
-    {
-        fprintf(stderr, "Failed to free device output (error code %s)!\n", cudaGetErrorString(err));
-        exit(EXIT_FAILURE);
-    }
+	cudaFree(d_OutputD);
+	cudaCheckError();
 
-	err = cudaFree(d_Buffer);
-	if (err != cudaSuccess)
-	{
-		fprintf(stderr, "Failed to free device buffer (error code %s)!\n", cudaGetErrorString(err));
-		exit(EXIT_FAILURE);
-	}
+	cudaFree(d_Buffer);
+	cudaCheckError();
 
-	err = cudaFree(d_Input);
-	if (err != cudaSuccess)
-	{
-		fprintf(stderr, "Failed to free device input (error code %s)!\n", cudaGetErrorString(err));
-		exit(EXIT_FAILURE);
-	}
+	cudaFree(d_Input);
+	cudaCheckError();
 
-	err = cudaFree(d_Filter);
-	if (err != cudaSuccess)
-	{
-		fprintf(stderr, "Failed to free device filter (error code %s)!\n", cudaGetErrorString(err));
-		exit(EXIT_FAILURE);
-	}
+	cudaFree(d_Filter);
+	cudaCheckError();
 
 	// Do a device reset just in case... Bgalte to sxolio otan ylopoihsete CUDA
 	cudaDeviceReset();
