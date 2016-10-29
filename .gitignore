@@ -4,6 +4,8 @@
 *.obj
 *.elf
 
+Convolution2D_CUDA
+Convolution2D_CUDA_4
 samples/
 sobel_orig_no_change
 sobel_2nd_test_set
