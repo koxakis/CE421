@@ -15,6 +15,8 @@ unsigned int filter_radius;
 #define FLOAT
 //#define DOUBLE
 
+#define MULT_GRID
+
 #define cudaCheckError() {                                                                       \
         cudaError_t e=cudaGetLastError();                                                        \
         if(e!=cudaSuccess) {                                                                     \
@@ -84,9 +86,16 @@ convolutionRowDevice(float *d_Dst, float *d_Src, float *d_Filter,int imageW, int
 	//printf("Hello world from the convolutionRowDevice! block=%d, thread=%d\n", blockIdx.x, threadIdx.x);
 	//int x, y,
 	int k;
+#ifdef MULT_GRID
+	int blockId = blockIdx.x + blockIdx.y * gridDim.x;
 
+	int col = blockId * blockDim.x + threadIdx.x;
+	int row = blockId * blockDim.y + threadIdx.y;
+	printf("%d %d %d\n", blockId, row, col);
+#else
 	int col = blockDim.x * blockIdx.x + threadIdx.x;
 	int row = blockDim.y * blockIdx.y + threadIdx.y;
+#endif
 
 	float sum = 0;
 
@@ -106,9 +115,16 @@ convolutionColumnDevice(float *d_Dst, float *d_Src, float *d_Filter,int imageW, 
 {
 	//int x, y,
 	int k;
+#ifdef MULT_GRID
+	int blockId = blockIdx.x + blockIdx.y * gridDim.x;
 
+	int col = blockId * blockDim.x + threadIdx.x;
+	int row = blockId * blockDim.y + threadIdx.y;
+#else
 	int col = blockDim.x * blockIdx.x + threadIdx.x;
 	int row = blockDim.y * blockIdx.y + threadIdx.y;
+#endif
+
 
 	float sum = 0;
 
@@ -245,11 +261,19 @@ int main(int argc, char **argv) {
 	printf("GPU computation...\n");
 
 	// Kernel paramiters prep
+#ifdef MULT_GRID
+	int threadsPerBlock = 32;
+	dim3 threads(threadsPerBlock, threadsPerBlock);
+
+	int blocksPerGrid = N/threads.x;
+	dim3 grid(N/threads.x,N/threads.y);
+#else
 	int threadsPerBlock = N;
 	dim3 threads(threadsPerBlock, threadsPerBlock);
 
 	int blocksPerGrid = 1;
 	dim3 grid(blocksPerGrid,blocksPerGrid);
+#endif
 
 	// convolution by rows device
 	printf("CUDA kernel launch with %d blocks of %d threads\n", blocksPerGrid*blocksPerGrid, threadsPerBlock*threadsPerBlock);
