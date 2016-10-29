@@ -2,7 +2,7 @@
 # ARE NOT EQUIVALENT to tabs. The line after a rule starts with a tab!
 
 #Add any executable you want to be created here.
-EXECUTABLES	= Convolution2D_CUDA
+EXECUTABLES	= Convolution2D_CUDA_4 Convolution2D_CUDA
 
 #This is the compiler to use
 CC = nvcc
@@ -12,12 +12,21 @@ CFLAGS = -arch sm_30 -G -lineinfo -Xcompiler -Wall -O4 -g
 
 
 # make all will create all executables
-all: $(EXECUTABLES)
+Convolution2D_CUDA.c: Convolution2D_CUDA
 
 # This is the rule to create any executable from the corresponding .c
 # file with the same name.
 %: %.cu
 	$(CC) $(CFLAGS) $< -o $@
+
+# make all will create all executables
+Convolution2D_CUDA_4.c: Convolution2D_CUDA_4
+
+# This is the rule to create any executable from the corresponding .c
+# file with the same name.
+%: %.cu
+	$(CC) $(CFLAGS) $< -o $@
+
 
 # make clean will remove all executables, jpg files and the
 # output of previous executions.
