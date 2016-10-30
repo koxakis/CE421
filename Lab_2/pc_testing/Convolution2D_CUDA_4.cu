@@ -89,7 +89,7 @@ convolutionRowDevice(float *d_Dst, float *d_Src, float *d_Filter,int imageW, int
 
 	int col = blockId * blockDim.x + threadIdx.x;
 	int row = blockId * blockDim.y + threadIdx.y;
-	printf("%d %d %d\n", blockId, row, col);
+	printf("block=%d, threadX=%d, threadY=%d, row=%d, column=%d \n", blockId, threadIdx.x, threadIdx.y, row, col);
 
 	float sum = 0;
 
@@ -112,8 +112,9 @@ convolutionColumnDevice(float *d_Dst, float *d_Src, float *d_Filter,int imageW, 
 
 	int blockId = blockIdx.x + blockIdx.y * gridDim.x;
 
-	int col = blockId * blockDim.x + threadIdx.x;
-	int row = blockId * blockDim.y + threadIdx.y;
+	int row = blockId * blockDim.x + threadIdx.x;
+	int col = blockId * blockDim.y + threadIdx.y;
+	printf("block=%d, threadX=%d, threadY=%d, row=%d, column=%d \n", blockId, threadIdx.x, threadIdx.y, row, col);
 
 	float sum = 0;
 
@@ -250,11 +251,21 @@ int main(int argc, char **argv) {
 	printf("GPU computation...\n");
 
 	// Kernel paramiters prep
-	int threadsPerBlock = 32;
+	int threadsPerBlock;
+	if (N >= 32){
+		threadsPerBlock = 32;
+	}else{
+		threadsPerBlock = N;
+	}
 	dim3 threads(threadsPerBlock, threadsPerBlock);
 
-	int blocksPerGrid = N/threads.x;
-	dim3 grid(N/threads.x,N/threads.y);
+	int blocksPerGrid;
+	if ( N>=32){
+		blocksPerGrid =  N/threads.x;
+	}else{
+		blocksPerGrid = 1;
+	}
+	dim3 grid(blocksPerGrid,blocksPerGrid);
 
 	// convolution by rows device
 	printf("CUDA kernel launch with %d blocks of %d threads\n", blocksPerGrid*blocksPerGrid, threadsPerBlock*threadsPerBlock);

@@ -1,6 +1,3 @@
-# Makefile. If you change it, remember than in makefiles multiple spaces
-# ARE NOT EQUIVALENT to tabs. The line after a rule starts with a tab!
-
 #Add any executable you want to be created here.
 EXECUTABLES	= Convolution2D_CUDA_4 Convolution2D_CUDA
 
@@ -19,11 +16,8 @@ Convolution2D_CUDA.c: Convolution2D_CUDA
 %: %.cu
 	$(CC) $(CFLAGS) $< -o $@
 
-# make all will create all executables
 Convolution2D_CUDA_4.c: Convolution2D_CUDA_4
 
-# This is the rule to create any executable from the corresponding .c
-# file with the same name.
 %: %.cu
 	$(CC) $(CFLAGS) $< -o $@
 

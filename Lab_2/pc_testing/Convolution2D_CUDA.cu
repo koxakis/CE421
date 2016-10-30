@@ -81,12 +81,12 @@ void convolutionColumnCPU(float *h_Dst, float *h_Src, float *h_Filter,int imageW
 __global__ void
 convolutionRowDevice(float *d_Dst, float *d_Src, float *d_Filter,int imageW, int imageH, int filterR)
 {
-	//printf("Hello world from the convolutionRowDevice! block=%d, thread=%d\n", blockIdx.x, threadIdx.x);
 	//int x, y,
 	int k;
 
 	int col = blockDim.x * blockIdx.x + threadIdx.x;
 	int row = blockDim.y * blockIdx.y + threadIdx.y;
+	printf("block=%d, thread=%d, row=%d, column=%d \n", blockIdx.x, threadIdx.x, row, col);
 
 	float sum = 0;
 
@@ -107,8 +107,8 @@ convolutionColumnDevice(float *d_Dst, float *d_Src, float *d_Filter,int imageW, 
 	//int x, y,
 	int k;
 
-	int col = blockDim.x * blockIdx.x + threadIdx.x;
-	int row = blockDim.y * blockIdx.y + threadIdx.y;
+	int row = blockDim.x * blockIdx.x + threadIdx.x;
+	int col = blockDim.y * blockIdx.y + threadIdx.y;
 
 	float sum = 0;
 
