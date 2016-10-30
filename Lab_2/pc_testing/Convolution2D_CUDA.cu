@@ -84,8 +84,8 @@ convolutionRowDevice(float *d_Dst, float *d_Src, float *d_Filter,int imageW, int
 	//int x, y,
 	int k;
 
-	int col = blockDim.x * blockIdx.x + threadIdx.x;
-	int row = blockDim.y * blockIdx.y + threadIdx.y;
+	int row = blockDim.x * blockIdx.x + threadIdx.x;
+	int col = blockDim.y * blockIdx.y + threadIdx.y;
 	printf("block=%d, thread=%d, row=%d, column=%d \n", blockIdx.x, threadIdx.x, row, col);
 
 	float sum = 0;

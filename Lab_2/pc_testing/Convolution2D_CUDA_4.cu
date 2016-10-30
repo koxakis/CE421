@@ -85,11 +85,11 @@ convolutionRowDevice(float *d_Dst, float *d_Src, float *d_Filter,int imageW, int
 	//int x, y,
 	int k;
 
-	int blockId = blockIdx.x + blockIdx.y * gridDim.x;
+	//int blockId = blockIdx.x + blockIdx.y * gridDim.x;
 
-	int col = blockId * blockDim.x + threadIdx.x;
-	int row = blockId * blockDim.y + threadIdx.y;
-	printf("block=%d, threadX=%d, threadY=%d, row=%d, column=%d \n", blockId, threadIdx.x, threadIdx.y, row, col);
+	int row = blockIdx.x * blockDim.x + threadIdx.x;
+	int col = blockIdx.y * blockDim.y + threadIdx.y;
+	//printf("blockX=%d, blockY=%d, threadX=%d, threadY=%d, row=%d, column=%d \n",  blockIdx.x,  blockIdx.y, threadIdx.x, threadIdx.y, row, col);
 
 	float sum = 0;
 
@@ -110,11 +110,11 @@ convolutionColumnDevice(float *d_Dst, float *d_Src, float *d_Filter,int imageW, 
 	//int x, y,
 	int k;
 
-	int blockId = blockIdx.x + blockIdx.y * gridDim.x;
+	//int blockId = blockIdx.x + blockIdx.y * gridDim.x;
 
-	int row = blockId * blockDim.x + threadIdx.x;
-	int col = blockId * blockDim.y + threadIdx.y;
-	printf("block=%d, threadX=%d, threadY=%d, row=%d, column=%d \n", blockId, threadIdx.x, threadIdx.y, row, col);
+	int row = blockIdx.x * blockDim.x + threadIdx.x;
+	int col = blockIdx.y * blockDim.y + threadIdx.y;
+	//printf("blockX=%d, blockY=%d, threadX=%d, threadY=%d, row=%d, column=%d \n",  blockIdx.x,  blockIdx.y, threadIdx.x, threadIdx.y, row, col);
 
 	float sum = 0;
 
