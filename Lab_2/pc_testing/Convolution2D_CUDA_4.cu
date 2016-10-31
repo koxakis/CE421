@@ -180,7 +180,7 @@ int main(int argc, char **argv) {
 
 
 	printf("Image Width x Height = %i x %i\n\n", imageW, imageH);
-	printf("Allocating and initializing host arrays...\n");
+	printf("Allocating host arrays...\n");
 	// Tha htan kalh idea na elegxete kai to apotelesma twn malloc...
 	// Host mallocs
 
@@ -192,10 +192,11 @@ int main(int argc, char **argv) {
 	h_OutputGPU = (float *)malloc(imageW * imageH * sizeof(float));
 
 	if ( h_Filter == NULL || h_Input == NULL || h_Buffer == NULL || h_OutputCPU == NULL || h_OutputGPU == NULL) {
-		fprintf(stderr, "Failed to allocate host vectors!\n");
+		fprintf(stderr, "Failed to allocate Host matrices!\n");
         exit(EXIT_FAILURE);
 	}
 
+	printf("Allocating Device arrays...\n");
 	// Device mallocs
 	d_Filter = NULL;
 	cudaMalloc((void **)&d_Filter, FILTER_LENGTH * sizeof(float));
@@ -216,7 +217,7 @@ int main(int argc, char **argv) {
 	// to 'h_Filter' apotelei to filtro me to opoio ginetai to convolution kai
 	// arxikopoieitai tuxaia. To 'h_Input' einai h eikona panw sthn opoia ginetai
 	// to convolution kai arxikopoieitai kai auth tuxaia.
-
+	printf("Initializing Host arrays...\n");
 	srand(200);
 
 	for (i = 0; i < FILTER_LENGTH; i++) {
@@ -226,6 +227,7 @@ int main(int argc, char **argv) {
 		h_Input[i] = (float)rand() / ((float)RAND_MAX / 255) + (float)rand() / (float)RAND_MAX;
 	}
 
+	printf("Initializing Device arrays...\n");
 	// Transfer Data to Device
 	cudaMemcpy(d_Filter, h_Filter, FILTER_LENGTH * sizeof(float), cudaMemcpyHostToDevice);
 	cudaCheckError();
@@ -297,7 +299,7 @@ int main(int argc, char **argv) {
 
 	for (unsigned i = 0; i < imageH * imageW; i++) {
 		if ( h_OutputCPU[i] != h_OutputGPU[i]){
-			printf("Algorithm not correct \n" );
+			printf("Algorithm not correct \nCheck if algorithm is correct or it is just inaccured" );
 			break;
 		}
 	}
