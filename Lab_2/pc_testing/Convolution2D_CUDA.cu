@@ -81,12 +81,10 @@ void convolutionColumnCPU(float *h_Dst, float *h_Src, float *h_Filter,int imageW
 __global__ void
 convolutionRowDevice(float *d_Dst, float *d_Src, float *d_Filter,int imageW, int imageH, int filterR)
 {
-	//int x, y,
 	int k;
 
 	int row = blockIdx.x * blockDim.x + threadIdx.x;
 	int col = blockIdx.y * blockDim.y + threadIdx.y;
-	//printf("blockX=%d, blockY=%d, threadX=%d, threadY=%d, row=%d, column=%d \n",  blockIdx.x,  blockIdx.y, threadIdx.x, threadIdx.y, row, col);
 
 	float sum = 0;
 
@@ -95,24 +93,22 @@ convolutionRowDevice(float *d_Dst, float *d_Src, float *d_Filter,int imageW, int
 
 		if (d >= 0 && d < imageW) {
 			//sum += h_Src[y * imageW + d] * h_Filter[filterR - k];
-			sum += d_Filter[filterR - k] * d_Src[d + col * blockDim.y];
+			sum += d_Src[col * imageW + d] * d_Filter[filterR - k];
 		}
 		//h_Dst[y * imageW + x] = sum;
-		d_Dst[row + col * blockDim.y] = sum;
+		d_Dst[col * imageW + row] = sum;
 	}
 
-
 }
+
 
 __global__ void
 convolutionColumnDevice(float *d_Dst, float *d_Src, float *d_Filter,int imageW, int imageH, int filterR)
 {
-	//int x, y,
 	int k;
 
 	int row = blockIdx.x * blockDim.x + threadIdx.x;
 	int col = blockIdx.y * blockDim.y + threadIdx.y;
-	//printf("blockX=%d, blockY=%d, threadX=%d, threadY=%d, row=%d, column=%d \n",  blockIdx.x,  blockIdx.y, threadIdx.x, threadIdx.y, row, col);
 
 	float sum = 0;
 
@@ -121,13 +117,14 @@ convolutionColumnDevice(float *d_Dst, float *d_Src, float *d_Filter,int imageW, 
 
 		if (d >= 0 && d < imageH) {
 			//sum += h_Src[d * imageW + x] * h_Filter[filterR - k];
-			sum += d_Filter[filterR - k] * d_Src[row + d * blockDim.x];
+			sum += d_Src[d * imageW + row] * d_Filter[filterR -k];
 		}
 		//h_Dst[y * imageW + x] = sum;
-		d_Dst[row + col * blockDim.x] = sum;
+		d_Dst[col * imageW + row] = sum;
 	}
 
 }
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // Main program
