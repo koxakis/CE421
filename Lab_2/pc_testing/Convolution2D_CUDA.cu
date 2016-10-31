@@ -13,7 +13,7 @@ unsigned int filter_radius;
 #define accuracy  	0.00005
 
 #define FLOAT
-//#define DOUBLE
+//#define INTEGER
 
 #define cudaCheckError() {                                                                       \
         cudaError_t e=cudaGetLastError();                                                        \
@@ -84,20 +84,23 @@ convolutionRowDevice(float *d_Dst, float *d_Src, float *d_Filter,int imageW, int
 	//int x, y,
 	int k;
 
-	int row = blockDim.x * blockIdx.x + threadIdx.x;
-	int col = blockDim.y * blockIdx.y + threadIdx.y;
-	printf("block=%d, thread=%d, row=%d, column=%d \n", blockIdx.x, threadIdx.x, row, col);
+	int row = blockIdx.x * blockDim.x + threadIdx.x;
+	int col = blockIdx.y * blockDim.y + threadIdx.y;
+	//printf("blockX=%d, blockY=%d, threadX=%d, threadY=%d, row=%d, column=%d \n",  blockIdx.x,  blockIdx.y, threadIdx.x, threadIdx.y, row, col);
 
 	float sum = 0;
 
 	for (k = -filterR; k <= filterR; k++) {
-		int d = col + k;
+		int d = row + k;
 
 		if (d >= 0 && d < imageW) {
-			sum += d_Filter[filterR - k] * d_Src[d + row * blockDim.y];
+			//sum += h_Src[y * imageW + d] * h_Filter[filterR - k];
+			sum += d_Filter[filterR - k] * d_Src[d + col * blockDim.y];
 		}
-		d_Dst[col + row * blockDim.y] = sum;
+		//h_Dst[y * imageW + x] = sum;
+		d_Dst[row + col * blockDim.y] = sum;
 	}
+
 
 }
 
@@ -107,18 +110,21 @@ convolutionColumnDevice(float *d_Dst, float *d_Src, float *d_Filter,int imageW, 
 	//int x, y,
 	int k;
 
-	int row = blockDim.x * blockIdx.x + threadIdx.x;
-	int col = blockDim.y * blockIdx.y + threadIdx.y;
+	int row = blockIdx.x * blockDim.x + threadIdx.x;
+	int col = blockIdx.y * blockDim.y + threadIdx.y;
+	//printf("blockX=%d, blockY=%d, threadX=%d, threadY=%d, row=%d, column=%d \n",  blockIdx.x,  blockIdx.y, threadIdx.x, threadIdx.y, row, col);
 
 	float sum = 0;
 
 	for (k = -filterR; k <= filterR; k++) {
-		int d = row + k;
+		int d = col + k;
 
 		if (d >= 0 && d < imageH) {
-			sum += d_Filter[filterR - k] * d_Src[col + d * blockDim.x];
+			//sum += h_Src[d * imageW + x] * h_Filter[filterR - k];
+			sum += d_Filter[filterR - k] * d_Src[row + d * blockDim.x];
 		}
-		d_Dst[col + row * blockDim.x] = sum;
+		//h_Dst[y * imageW + x] = sum;
+		d_Dst[row + col * blockDim.x] = sum;
 	}
 
 }
@@ -142,7 +148,19 @@ int main(int argc, char **argv) {
 	*d_Buffer,
 	*d_OutputD;
 #endif
-#ifdef DOUBLE
+#ifdef INTEGER
+	int
+	*h_Filter,
+	*h_Input,
+	*h_Buffer,
+	*h_OutputCPU,
+	*h_OutputGPU;
+
+	int
+	*d_Filter,
+	*d_Input,
+	*d_Buffer,
+	*d_OutputD;
 #endif
 
 	int imageW;
@@ -230,7 +248,56 @@ int main(int argc, char **argv) {
 
 #endif
 
-#ifdef DOUBLE
+#ifdef INTEGER
+	h_Filter    = (int *)malloc(FILTER_LENGTH * sizeof(int));
+	h_Input     = (int *)malloc(imageW * imageH * sizeof(int));
+	h_Buffer    = (int *)malloc(imageW * imageH * sizeof(int));
+	h_OutputCPU = (int *)malloc(imageW * imageH * sizeof(int));
+	h_OutputGPU = (int *)malloc(imageW * imageH * sizeof(int));
+
+	if ( h_Filter == NULL || h_Input == NULL || h_Buffer == NULL || h_OutputCPU == NULL || h_OutputGPU == NULL) {
+		fprintf(stderr, "Failed to allocate Host matrices!\n");
+		exit(EXIT_FAILURE);
+	}
+
+	printf("Allocating Device arrays...\n");
+	// Device mallocs
+	d_Filter = NULL;
+	cudaMalloc((void **)&d_Filter, FILTER_LENGTH * sizeof(int));
+	cudaCheckError();
+
+	d_Input = NULL;
+	cudaMalloc((void **)&d_Input, imageW * imageH * sizeof(int));
+	cudaCheckError();
+
+	d_Buffer = NULL;
+	cudaMalloc((void **)&d_Buffer, imageW * imageH * sizeof(int));
+	cudaCheckError();
+
+	d_OutputD = NULL;
+	cudaMalloc((void **)&d_OutputD, imageW * imageH * sizeof(int));
+	cudaCheckError();
+
+	// to 'h_Filter' apotelei to filtro me to opoio ginetai to convolution kai
+	// arxikopoieitai tuxaia. To 'h_Input' einai h eikona panw sthn opoia ginetai
+	// to convolution kai arxikopoieitai kai auth tuxaia.
+	printf("Initializing Host arrays...\n");
+	srand(200);
+
+	for (i = 0; i < FILTER_LENGTH; i++) {
+		h_Filter[i] = (int)(rand() % 16);
+	}
+	for (i = 0; i < imageW * imageH; i++) {
+		h_Input[i] = (int)rand() / ((int)RAND_MAX / 255) + (int)rand() / (int)RAND_MAX;
+	}
+	printf("Initializing Device arrays...\n");
+	// Transfer Data to Device
+	cudaMemcpy(d_Filter, h_Filter, FILTER_LENGTH * sizeof(int), cudaMemcpyHostToDevice);
+	cudaCheckError();
+
+	cudaMemcpy(d_Input, h_Input, imageW * imageH * sizeof(int), cudaMemcpyHostToDevice);
+	cudaCheckError();
+
 #endif
 
 	// To parakatw einai to kommati pou ekteleitai sthn CPU kai me vash auto prepei na ginei h sugrish me thn GPU.
@@ -276,32 +343,28 @@ int main(int argc, char **argv) {
 #ifdef FLOAT
     cudaMemcpy(h_OutputGPU, d_OutputD, imageW * imageH * sizeof(float), cudaMemcpyDeviceToHost);
 #endif
-#ifdef DOUBLE
+#ifdef INTEGER
+	cudaMemcpy(h_OutputGPU, d_OutputD, imageW * imageH * sizeof(int), cudaMemcpyDeviceToHost);
 #endif
 	cudaCheckError();
 
-	for (unsigned i = 0; i < imageH * imageW; i++) {
-		if ( h_OutputCPU[i] != h_OutputGPU[i]){
-			printf("Algorithm not correct \nCheck if algorithm is correct or it is just inaccured" );
-			break;
-		}
-	}
-
 	printf("\nComparing the outputs\n");
-    double sum = 0, delta = 0;
+	double max_diff=0, temp;
 
     for (unsigned i = 0; i < imageW * imageH; i++)
     {
-        delta += (h_OutputGPU[i] - h_OutputCPU[i]) * (h_OutputGPU[i] - h_OutputCPU[i]);
-        sum   += h_OutputCPU[i] * h_OutputCPU[i];
-		if ( delta > accuracy){
+    	temp = ABS(h_OutputCPU[i] - h_OutputGPU[i]);
+		if (max_diff < temp) {
+			max_diff = temp;
+		}
+
+		if ( max_diff > accuracy){
 			printf("The accuracy is not good enough\n" );
 			break;
 		}
     }
-	double L2norm = sqrt(delta / sum);
-    printf(" Relative L2 norm: %E\n\n", L2norm);
 
+    printf("Max diff: %lf\n\n", max_diff);
 	// free all the allocated memory
 	free(h_OutputCPU);
 	free(h_Buffer);

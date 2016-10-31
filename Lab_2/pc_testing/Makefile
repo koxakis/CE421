@@ -5,7 +5,7 @@ EXECUTABLES	= Convolution2D_CUDA_4 Convolution2D_CUDA
 CC = nvcc
 
 #These are the flags passed to the compiler. Change accordingly
-CFLAGS = -arch sm_30 -G -lineinfo -Xcompiler -Wall -O4 -g
+CFLAGS = -arch sm_30 -lineinfo -Xcompiler -Wall -O4 -g
 
 
 # make all will create all executables

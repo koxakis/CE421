@@ -94,12 +94,14 @@ convolutionRowDevice(float *d_Dst, float *d_Src, float *d_Filter,int imageW, int
 	float sum = 0;
 
 	for (k = -filterR; k <= filterR; k++) {
-		int d = col + k;
+		int d = row + k;
 
 		if (d >= 0 && d < imageW) {
-			sum += d_Filter[filterR - k] * d_Src[d + row * blockDim.y];
+			//sum += h_Src[y * imageW + d] * h_Filter[filterR - k];
+			sum += d_Filter[filterR - k] * d_Src[d + col * blockDim.y];
 		}
-		d_Dst[col + row * blockDim.y] = sum;
+		//h_Dst[y * imageW + x] = sum;
+		d_Dst[row + col * blockDim.y] = sum;
 	}
 
 }
@@ -119,12 +121,14 @@ convolutionColumnDevice(float *d_Dst, float *d_Src, float *d_Filter,int imageW, 
 	float sum = 0;
 
 	for (k = -filterR; k <= filterR; k++) {
-		int d = row + k;
+		int d = col + k;
 
 		if (d >= 0 && d < imageH) {
-			sum += d_Filter[filterR - k] * d_Src[col + d * blockDim.x];
+			//sum += h_Src[d * imageW + x] * h_Filter[filterR - k];
+			sum += d_Filter[filterR - k] * d_Src[row + d * blockDim.x];
 		}
-		d_Dst[col + row * blockDim.x] = sum;
+		//h_Dst[y * imageW + x] = sum;
+		d_Dst[row + col * blockDim.x] = sum;
 	}
 
 }
@@ -305,19 +309,22 @@ int main(int argc, char **argv) {
 	}
 
 	printf("\nComparing the outputs\n");
-    double sum = 0, delta = 0;
+    double max_diff=0, temp;
 
     for (unsigned i = 0; i < imageW * imageH; i++)
     {
-        delta += (h_OutputGPU[i] - h_OutputCPU[i]) * (h_OutputGPU[i] - h_OutputCPU[i]);
-        sum   += h_OutputCPU[i] * h_OutputCPU[i];
-		if ( delta > accuracy){
+    	temp = ABS(h_OutputCPU - h_OutputGPU);
+		if (max_diff < temp) {
+			max_diff = temp;
+		}
+
+		if ( max_diff > accuracy){
 			printf("The accuracy is not good enough\n" );
 			break;
 		}
     }
-	double L2norm = sqrt(delta / sum);
-    printf(" Relative L2 norm: %E\n\n", L2norm);
+
+    printf("Max diff: %lf\n\n", max_diff);
 
 	// free all the allocated memory
 	free(h_OutputCPU);
