@@ -4,6 +4,13 @@
 *.obj
 *.elf
 
+
+test1                                                                       test2
+testCPU
+testGPU
+testC
+Convolution2D_CUDA                                               
+Convolution2D_CUDA_8                                                        Convolution2D_CUDA_6   
 Convolution2D_CUDA
 Convolution2D_CUDA_4
 samples/
