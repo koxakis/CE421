@@ -2,21 +2,33 @@
 * This sample implements a separable convolution
 * of a 2D image with an arbitrary filter.
 */
+/*
+Η ιδέα είναι ότι βάζεις τα δεδομένα σου σε μεγαλύτερη μνήμη απ' ότι χρειάζονται για διάφορους λόγους.
+Π.χ. για να πάνε σε διαφορετικά cache lines και να σπάσεις το false sharing, για να αλλάξει η γεωμετρία αποθήκευσης
+στη μνήμη και να σπάσουν cache conflicts ή bank conflicts, ή για να γλυτώσεις if statements / divergence (όπως στο project).
+Το πρόβλημα στο project ήταν ότι ο αριθμός των threads μπορεί να ήταν μεγαλύτερος από τον αριθμό των στοιχείων στον πίνακα.
+Σε αυτή την περίπτωση έχεις 2 επιλογές:
+Να βάλεις if ώστε τα threads που θα δούλευαν εκτός των στοιχείων του πίνακα να μην κάνουν τίποτα.
+Ή
+Να βάλεις τα στοιχεία σε έναν πίνακα με περισσότερες γραμμές και στήλες από όσες χρειάζονται, 
+ώστε το κάθε thread να έχει μια θέση να δουλέψει, έστω και αν αυτή αρχικά έχει σκουπίδια / πετάξεις το αποτέλεσμα.
+Μπορεί (ανάλογα με τον αλγόριθμο) να χρειαστεί να αρχικοποιήσεις αυτές τις extra γραμές / στήλες με συγκεκριμένες τιμές ώστε να μη σου χαλάσει το αποτέλεσμα στα όρια.
+*/
 
 #include <stdio.h>
 #include <stdlib.h>
 #include "gputimer.h"
+#include <time.h>
 
 unsigned int filter_radius;
 GpuTimer timer;
 float overal_time = 0;
+clock_t start, end;
+double overal_CPU_time;
 
 #define FILTER_LENGTH 	(2 * filter_radius + 1)
 #define ABS(val)  	((val)<0.0 ? (-(val)) : (val))
 #define accuracy  	0.00005
-
-#define FLOAT
-//#define DOUBLE
 
 #define cudaCheckError() {                                                                       \
         cudaError_t e=cudaGetLastError();                                                        \
@@ -133,7 +145,6 @@ convolutionColumnDevice(double *d_Dst, double *d_Src, double *d_Filter,int image
 ////////////////////////////////////////////////////////////////////////////////
 int main(int argc, char **argv) {
 
-#ifdef FLOAT
 	double
 	*h_Filter,
 	*h_Input,
@@ -146,9 +157,6 @@ int main(int argc, char **argv) {
 	*d_Input,
 	*d_Buffer,
 	*d_OutputD;
-#endif
-#ifdef DOUBLE
-#endif
 
 	int imageW;
 	int imageH;
@@ -183,7 +191,6 @@ int main(int argc, char **argv) {
 	// Tha htan kalh idea na elegxete kai to apotelesma twn malloc...
 	// Host mallocs
 
-#ifdef FLOAT
 	h_Filter    = (double *)malloc(FILTER_LENGTH * sizeof(double));
 	h_Input     = (double *)malloc(imageW * imageH * sizeof(double));
 	h_Buffer    = (double *)malloc(imageW * imageH * sizeof(double));
@@ -240,17 +247,13 @@ int main(int argc, char **argv) {
 	overal_time = overal_time + timer.Elapsed();
 	cudaCheckError();
 
-#endif
-
-#ifdef DOUBLE
-#endif
-
 	// To parakatw einai to kommati pou ekteleitai sthn CPU kai me vash auto prepei na ginei h sugrish me thn GPU.
 	printf("CPU computation...\n");
 
+	start = clock();
 	convolutionRowCPU(h_Buffer, h_Input, h_Filter, imageW, imageH, filter_radius); // convolution kata grammes
 	convolutionColumnCPU(h_OutputCPU, h_Buffer, h_Filter, imageW, imageH, filter_radius); // convolution kata sthles
-
+	end = clock();
 
 	// Kanete h sugrish anamesa se GPU kai CPU kai an estw kai kapoio apotelesma xeperna thn akriveia
 	// pou exoume orisei, tote exoume sfalma kai mporoume endexomenws na termatisoume to programma mas
@@ -301,14 +304,12 @@ int main(int argc, char **argv) {
 	// Copy the device result vector in device memory to the host result vector
     // in host memory.
     printf("Copy output data from the CUDA device to the host memory\n");
-#ifdef FLOAT
+
 	timer.Start();
     cudaMemcpy(h_OutputGPU, d_OutputD, imageW * imageH * sizeof(double), cudaMemcpyDeviceToHost);
 	timer.Stop();
 	overal_time = overal_time + timer.Elapsed();
-#endif
-#ifdef DOUBLE
-#endif
+
 	cudaCheckError();
 
 	printf("\nComparing the outputs\n");
@@ -329,6 +330,9 @@ int main(int argc, char **argv) {
 
     printf("Max diff: %g\n\n", max_diff);
 	printf("Time elapsed = %g ms\n", overal_time);
+
+	overal_CPU_time = (double)(end - start) * 1000.0 / CLOCKS_PER_SEC ;
+	printf ("Time elapsed on CPU = %lf ms\n", overal_CPU_time);
 
 
 	// free all the allocated memory
