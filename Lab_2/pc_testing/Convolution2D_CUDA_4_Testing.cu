@@ -30,8 +30,8 @@ void convolutionRowCPU(int *h_Dst, int *h_Src, int *h_Filter,int imageW, int ima
 
 	int x, y, k;
 
-	for (y = 0; y < imageH; y++) {
-		for (x = 0; x < imageW; x++) {
+	for (y = FILTER_LENGTH; y < imageH; y++) {
+		for (x = FILTER_LENGTH; x < imageW; x++) {
 			int sum = 0;
 
 			for (k = -filterR; k <= filterR; k++) {
@@ -56,8 +56,8 @@ void convolutionColumnCPU(int *h_Dst, int *h_Src, int *h_Filter,int imageW, int 
 
 	int x, y, k;
 
-	for (y = 0; y < imageH; y++) {
-		for (x = 0; x < imageW; x++) {
+	for (y = FILTER_LENGTH; y < imageH; y++) {
+		for (x = FILTER_LENGTH; x < imageW; x++) {
 			int sum = 0;
 
 			for (k = -filterR; k <= filterR; k++) {
@@ -91,11 +91,8 @@ convolutionRowDevice(int *d_Dst, int *d_Src, int *d_Filter,int imageW, int image
 	for (k = -filterR; k <= filterR; k++) {
 		int d = row + k;
 
-		if (d >= 0 && d < imageW) {
-			//sum += h_Src[y * imageW + d] * h_Filter[filterR - k];
-			sum += d_Src[col * imageW + d] * d_Filter[filterR - k];
-		}
-		//h_Dst[y * imageW + x] = sum;
+		sum += d_Src[col * imageW + d] * d_Filter[filterR - k];
+
 		d_Dst[col * imageW + row] = sum;
 	}
 
@@ -114,11 +111,9 @@ convolutionColumnDevice(int *d_Dst, int *d_Src, int *d_Filter,int imageW, int im
 	for (k = -filterR; k <= filterR; k++) {
 		int d = col + k;
 
-		if (d >= 0 && d < imageH) {
-			//sum += h_Src[d * imageW + x] * h_Filter[filterR - k];
-			sum += d_Src[d * imageW + row] * d_Filter[filterR -k];
-		}
-		//h_Dst[y * imageW + x] = sum;
+		//if (d>=0) {
+			sum += d_Src[col * imageW + d] * d_Filter[filterR - k];
+		//}
 		d_Dst[col * imageW + row] = sum;
 	}
 
@@ -181,10 +176,11 @@ int main(int argc, char **argv) {
 
 #ifdef FLOAT
 	h_Filter    = (int *)malloc(FILTER_LENGTH * sizeof(int));
-	h_Input     = (int *)malloc(imageW * imageH * sizeof(int));
-	h_Buffer    = (int *)malloc(imageW * imageH * sizeof(int));
+	h_Input     = (int *)malloc((imageW + (filter_radius * 2)) * (imageH + (filter_radius * 2)) * sizeof(int));
+	h_Buffer    = (int *)malloc((imageW + (filter_radius * 2)) * (imageH + (filter_radius * 2)) * sizeof(int));
 	h_OutputCPU = (int *)malloc(imageW * imageH * sizeof(int));
 	h_OutputGPU = (int *)malloc(imageW * imageH * sizeof(int));
+
 
 	if ( h_Filter == NULL || h_Input == NULL || h_Buffer == NULL || h_OutputCPU == NULL || h_OutputGPU == NULL) {
 		fprintf(stderr, "Failed to allocate Host matrices!\n");
@@ -198,11 +194,11 @@ int main(int argc, char **argv) {
 	cudaCheckError();
 
 	d_Input = NULL;
-	cudaMalloc((void **)&d_Input, imageW * imageH * sizeof(int));
+	cudaMalloc((void **)&d_Input, ((imageW + (filter_radius * 2)) * (imageH + (filter_radius * 2))) * sizeof(int));
 	cudaCheckError();
 
 	d_Buffer = NULL;
-	cudaMalloc((void **)&d_Buffer, imageW * imageH * sizeof(int));
+	cudaMalloc((void **)&d_Buffer, ((imageW + (filter_radius * 2)) * (imageH + (filter_radius * 2))) * sizeof(int));
 	cudaCheckError();
 
 	d_OutputD = NULL;
@@ -215,10 +211,11 @@ int main(int argc, char **argv) {
 	printf("Initializing Host arrays...\n");
 	srand(200);
 
+	//fil the table normally or fill at the start ??
 	for (i = 0; i < FILTER_LENGTH; i++) {
 		h_Filter[i] = (int)(rand() % 16);
 	}
-	for (i = 0; i < imageW * imageH; i++) {
+	for (i = FILTER_LENGTH * ((imageW + (filter_radius * 2))) + filter_radius; i < imageW * imageH; i++) {
 		h_Input[i] = (int)rand() / ((int)RAND_MAX / 255) + (int)rand() / (int)RAND_MAX;
 	}
 
@@ -227,7 +224,7 @@ int main(int argc, char **argv) {
 	cudaMemcpy(d_Filter, h_Filter, FILTER_LENGTH * sizeof(int), cudaMemcpyHostToDevice);
 	cudaCheckError();
 
-	cudaMemcpy(d_Input, h_Input, imageW * imageH * sizeof(int), cudaMemcpyHostToDevice);
+	cudaMemcpy(d_Input, h_Input, (imageW + (filter_radius * 2)) * (imageH + (filter_radius * 2)) * sizeof(int), cudaMemcpyHostToDevice);
 	cudaCheckError();
 
 #endif

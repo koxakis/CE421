@@ -34,8 +34,8 @@ void convolutionRowCPU(float *h_Dst, float *h_Src, float *h_Filter,int imageW, i
 
 	int x, y, k;
 
-	for (y = 0; y < imageH; y++) {
-		for (x = 0; x < imageW; x++) {
+	for (y = FILTER_LENGTH; y < imageH; y++) {
+		for (x = FILTER_LENGTH; x < imageW; x++) {
 			float sum = 0;
 
 			for (k = -filterR; k <= filterR; k++) {
@@ -60,8 +60,8 @@ void convolutionColumnCPU(float *h_Dst, float *h_Src, float *h_Filter,int imageW
 
 	int x, y, k;
 
-	for (y = 0; y < imageH; y++) {
-		for (x = 0; x < imageW; x++) {
+	for (y = FILTER_LENGTH; y < imageH; y++) {
+		for (x = FILTER_LENGTH; x < imageW; x++) {
 			float sum = 0;
 
 			for (k = -filterR; k <= filterR; k++) {
@@ -181,8 +181,8 @@ int main(int argc, char **argv) {
 	// Host mallocs
 
 	h_Filter    = (float *)malloc(FILTER_LENGTH * sizeof(float));
-	h_Input     = (float *)malloc(imageW * imageH * sizeof(float));
-	h_Buffer    = (float *)malloc(imageW * imageH * sizeof(float));
+	h_Input     = (float *)malloc((imageW + (filter_radius * 2)) * (imageH + (filter_radius * 2))* sizeof(float));
+	h_Buffer    = (float *)malloc((imageW + (filter_radius * 2)) * (imageH + (filter_radius * 2))* sizeof(float));
 	h_OutputCPU = (float *)malloc(imageW * imageH * sizeof(float));
 	h_OutputGPU = (float *)malloc(imageW * imageH * sizeof(float));
 
@@ -198,11 +198,11 @@ int main(int argc, char **argv) {
 	cudaCheckError();
 
 	d_Input = NULL;
-	cudaMalloc((void **)&d_Input, imageW * imageH * sizeof(float));
+	cudaMalloc((void **)&d_Input, ((imageW + (filter_radius * 2)) * (imageH + (filter_radius * 2)))* sizeof(float));
 	cudaCheckError();
 
 	d_Buffer = NULL;
-	cudaMalloc((void **)&d_Buffer, imageW * imageH * sizeof(float));
+	cudaMalloc((void **)&d_Buffer, ((imageW + (filter_radius * 2)) * (imageH + (filter_radius * 2)))* sizeof(float));
 	cudaCheckError();
 
 	d_OutputD = NULL;
@@ -218,7 +218,7 @@ int main(int argc, char **argv) {
 	for (i = 0; i < FILTER_LENGTH; i++) {
 		h_Filter[i] = (float)(rand() % 16);
 	}
-	for (i = 0; i < imageW * imageH; i++) {
+	for (i =  FILTER_LENGTH * ((imageW + (filter_radius * 2))) + filter_radius; i < imageW * imageH; i++) {
 		h_Input[i] = (float)rand() / ((float)RAND_MAX / 255) + (float)rand() / (float)RAND_MAX;
 	}
 
@@ -231,7 +231,7 @@ int main(int argc, char **argv) {
 	cudaCheckError();
 
 	timer.Start();
-	cudaMemcpy(d_Input, h_Input, imageW * imageH * sizeof(float), cudaMemcpyHostToDevice);
+	cudaMemcpy(d_Input, h_Input, (imageW + (filter_radius * 2)) * (imageH + (filter_radius * 2))* sizeof(float), cudaMemcpyHostToDevice);
 	timer.Stop();
 	overal_time = overal_time + timer.Elapsed();
 	cudaCheckError();
@@ -318,10 +318,10 @@ int main(int argc, char **argv) {
     }
 
     printf("Max diff: %g\n\n", max_diff);
-	printf("Time elapsed on GPU = %lf ms\n", overal_time);
+	printf("Time elapsed on GPU = %g ms\n", overal_time);
 
 	overal_CPU_time = (double)(end - start) * 1000.0 / CLOCKS_PER_SEC ;
-	printf ("Time elapsed on CPU = %lf ms\n", overal_CPU_time);
+	printf ("Time elapsed on CPU = %g ms\n", overal_CPU_time);
 
 
 	// free all the allocated memory

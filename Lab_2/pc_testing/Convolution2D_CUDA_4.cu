@@ -291,7 +291,7 @@ int main(int argc, char **argv) {
 	cudaCheckError();
 
 	// Copy the device result vector in device memory to the host result vector
-    // in host memory.
+    // in host memorycomment
     printf("Copy output data from the CUDA device to the host memory\n");
 
 	timer.Start();
@@ -318,10 +318,10 @@ int main(int argc, char **argv) {
     }
 
     printf("Max diff: %g\n\n", max_diff);
-	printf("Time elapsed on GPU = %lf ms\n", overal_time);
+	printf("Time elapsed on GPU = %g ms\n", overal_time);
 
 	overal_CPU_time = (double)(end - start) * 1000.0 / CLOCKS_PER_SEC ;
-	printf ("Time elapsed on CPU = %lf ms\n", overal_CPU_time);
+	printf ("Time elapsed on CPU = %g ms\n", overal_CPU_time);
 
 
 	// free all the allocated memory

@@ -2,18 +2,6 @@
 * This sample implements a separable convolution
 * of a 2D image with an arbitrary filter.
 */
-/*
-Η ιδέα είναι ότι βάζεις τα δεδομένα σου σε μεγαλύτερη μνήμη απ' ότι χρειάζονται για διάφορους λόγους.
-Π.χ. για να πάνε σε διαφορετικά cache lines και να σπάσεις το false sharing, για να αλλάξει η γεωμετρία αποθήκευσης
-στη μνήμη και να σπάσουν cache conflicts ή bank conflicts, ή για να γλυτώσεις if statements / divergence (όπως στο project).
-Το πρόβλημα στο project ήταν ότι ο αριθμός των threads μπορεί να ήταν μεγαλύτερος από τον αριθμό των στοιχείων στον πίνακα.
-Σε αυτή την περίπτωση έχεις 2 επιλογές:
-Να βάλεις if ώστε τα threads που θα δούλευαν εκτός των στοιχείων του πίνακα να μην κάνουν τίποτα.
-Ή
-Να βάλεις τα στοιχεία σε έναν πίνακα με περισσότερες γραμμές και στήλες από όσες χρειάζονται,
-ώστε το κάθε thread να έχει μια θέση να δουλέψει, έστω και αν αυτή αρχικά έχει σκουπίδια / πετάξεις το αποτέλεσμα.
-Μπορεί (ανάλογα με τον αλγόριθμο) να χρειαστεί να αρχικοποιήσεις αυτές τις extra γραμές / στήλες με συγκεκριμένες τιμές ώστε να μη σου χαλάσει το αποτέλεσμα στα όρια.
-*/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -332,7 +320,7 @@ int main(int argc, char **argv) {
 	printf("Time elapsed = %g ms\n", overal_time);
 
 	overal_CPU_time = (double)(end - start) * 1000.0 / CLOCKS_PER_SEC ;
-	printf ("Time elapsed on CPU = %lf ms\n", overal_CPU_time);
+	printf ("Time elapsed on CPU = %g ms\n", overal_CPU_time);
 
 
 	// free all the allocated memory
