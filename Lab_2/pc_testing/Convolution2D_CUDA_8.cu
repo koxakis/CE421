@@ -47,7 +47,10 @@ void convolutionRowCPU(float *h_Dst, float *h_Src, float *h_Filter,int imageW, i
 
 				h_Dst[y * imageW + x] = sum;
 			}
+			x = x + 2*filterR;
 		}
+		y = y + 2*filterR;
+
 	}
 
 }
@@ -73,7 +76,10 @@ void convolutionColumnCPU(float *h_Dst, float *h_Src, float *h_Filter,int imageW
 
 				h_Dst[y * imageW + x] = sum;
 			}
+			x = x + 2*filterR;
 		}
+		y = y + 2*filterR;
+
 	}
 
 }
@@ -95,10 +101,10 @@ convolutionRowDevice(float *d_Dst, float *d_Src, float *d_Filter,int imageW, int
 	for (k = -filterR; k <= filterR; k++) {
 		int d = row + k;
 
-		if (d >= 0 && d < imageW) {
+		//if (d >= 0 && d < imageW) {
 			//sum += h_Src[y * imageW + d] * h_Filter[filterR - k];
 			sum += d_Src[col * imageW + d] * d_Filter[filterR - k];
-		}
+		//}
 		//h_Dst[y * imageW + x] = sum;
 		d_Dst[col * imageW + row] = sum;
 	}
@@ -119,10 +125,10 @@ convolutionColumnDevice(float *d_Dst, float *d_Src, float *d_Filter,int imageW, 
 	for (k = -filterR; k <= filterR; k++) {
 		int d = col + k;
 
-		if (d >= 0 && d < imageH) {
+	//	if (d >= 0 && d < imageH) {
 			//sum += h_Src[d * imageW + x] * h_Filter[filterR - k];
 			sum += d_Src[d * imageW + row] * d_Filter[filterR -k];
-		}
+		//}
 		//h_Dst[y * imageW + x] = sum;
 		d_Dst[col * imageW + row] = sum;
 	}
@@ -218,7 +224,7 @@ int main(int argc, char **argv) {
 	for (i = 0; i < FILTER_LENGTH; i++) {
 		h_Filter[i] = (float)(rand() % 16);
 	}
-	for (i =  FILTER_LENGTH * ((imageW + (filter_radius * 2))) + filter_radius; i < imageW * imageH; i++) {
+	for (i =  filter_radius * ((imageW + (filter_radius * 2))) + filter_radius; i < imageW * imageH; i++) {
 		h_Input[i] = (float)rand() / ((float)RAND_MAX / 255) + (float)rand() / (float)RAND_MAX;
 	}
 
