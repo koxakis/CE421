@@ -1,5 +1,5 @@
 #Add any executable you want to be created here.
-EXECUTABLES	= Convolution2D_CUDA_Grid
+EXECUTABLES	= Convolution2D_CUDA_Grid Convolution2D_CUDA_Tiled
 
 #This is the compiler to use
 CC = nvcc
@@ -15,6 +15,11 @@ Convolution2D_CUDA_Grid: Convolution2D_CUDA_Grid.cu
 
 # This is the rule to create any executable from the corresponding .c
 # file with the same name.
+%: %.cu
+	$(CC) $(CFLAGS) -o $@ $< $(LDFLAGS)
+
+Convolution2D_CUDA_Tiled: Convolution2D_CUDA_Tiled.cu
+
 %: %.cu
 	$(CC) $(CFLAGS) -o $@ $< $(LDFLAGS)
 
