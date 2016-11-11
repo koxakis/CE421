@@ -12,6 +12,7 @@ test2
 testCPU
 testGPU
 testC
+testCUDA
 Convolution2D_CUDA                                               
 Convolution2D_CUDA_8                                                        
 Convolution2D_CUDA_6   
