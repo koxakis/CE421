@@ -23,9 +23,6 @@ double overal_CPU_time;
 
 #define DEBUG
 
-typedef float fp_t;
-
-
 #define cudaCheckError() {                                                                       \
         cudaError_t e=cudaGetLastError();                                                        \
         if(e!=cudaSuccess) {                                                                     \
@@ -89,10 +86,10 @@ void convolutionColumnCPU(float *h_Dst, float *h_Src, float *h_Filter,int imageW
 // Device code
 ////////////////////////////////////////////////////////////////////////////////
 
-//__constant__ float d_Filter[33];
+__constant__ float d_Filter[33];
 
 __global__ void
-convolutionRowDevice(float *d_Dst, float *d_Src, float *d_Filter, int imageW, int imageH, int filterR)
+convolutionRowDevice(float *d_Dst, float *d_Src, int imageW, int imageH, int filterR)
 {
 	int k;
 
@@ -101,10 +98,7 @@ convolutionRowDevice(float *d_Dst, float *d_Src, float *d_Filter, int imageW, in
 	__shared__ float tiled_block[TILE_WIDTH][TILE_HIGHT];
 
 	float sum = 0;
-
-	for (int i = 0; i < TILE_WIDTH*TILE_HIGHT; i++) {
-		tiled_block[threadIdx.y][threadIdx.x] = d_Src[col*imageH + row ];
-	}
+	tiled_block[threadIdx.y][threadIdx.x] = d_Src[col*imageH + row ];
 
 	__syncthreads();
 
@@ -123,7 +117,7 @@ convolutionRowDevice(float *d_Dst, float *d_Src, float *d_Filter, int imageW, in
 
 
 __global__ void
-convolutionColumnDevice(float *d_Dst, float *d_Src, float *d_Filter,int imageW, int imageH, int filterR)
+convolutionColumnDevice(float *d_Dst, float *d_Src, int imageW, int imageH, int filterR)
 {
 	int k;
 
@@ -133,9 +127,7 @@ convolutionColumnDevice(float *d_Dst, float *d_Src, float *d_Filter,int imageW, 
 
 
 	float sum = 0;
-	for (int i = 0; i < TILE_WIDTH*TILE_HIGHT; i++) {
-		tiled_block[threadIdx.y][threadIdx.x] = d_Src[col*imageH + row ];
-	}
+	tiled_block[threadIdx.y][threadIdx.x] = d_Src[col*imageH + row ];
 
 	__syncthreads();
 
@@ -158,14 +150,13 @@ convolutionColumnDevice(float *d_Dst, float *d_Src, float *d_Filter,int imageW, 
 int main(int argc, char **argv) {
 
 	float
-	*h_Filter,
+	h_Filter[33],
 	*h_Input,
 	*h_Buffer,
 	*h_OutputCPU,
 	*h_OutputGPU;
 
 	float
-	*d_Filter,
 	*d_Input,
 	*d_Buffer,
 	*d_OutputD;
@@ -203,7 +194,6 @@ int main(int argc, char **argv) {
 	// Tha htan kalh idea na elegxete kai to apotelesma twn malloc...
 	// Host mallocs
 
-	h_Filter    = (float *)malloc(FILTER_LENGTH * sizeof(float));
 	h_Input     = (float *)malloc(imageW * imageH * sizeof(float));
 	h_Buffer    = (float *)malloc(imageW * imageH * sizeof(float));
 	h_OutputCPU = (float *)malloc(imageW * imageH * sizeof(float));
@@ -215,11 +205,6 @@ int main(int argc, char **argv) {
 	}
 
 	printf("Allocating Device arrays...\n");
-	// Device mallocs
-	d_Filter = NULL;
-	cudaMalloc((void **)&d_Filter, FILTER_LENGTH * sizeof(float));
-
-	cudaCheckError();
 
 	d_Input = NULL;
 	cudaMalloc((void **)&d_Input, imageW * imageH * sizeof(float));
@@ -248,20 +233,11 @@ int main(int argc, char **argv) {
 
 	printf("Initializing Device arrays...\n");
 	// Transfer Data to Device
-	timer.Start();
-	cudaMemcpy(d_Filter, h_Filter, FILTER_LENGTH * sizeof(float), cudaMemcpyHostToDevice);
-	//cudaMemcpyToSymbol( d_Filter, h_Filter, 33 * sizeof(float), cudaMemcpyHostToDevice);
-	//cudaGetSymbolAddress((void**)&d_Filter, Filter);
-	//cudaCheckError();
 	//cudaMemcpy(d_Filter, h_Filter, FILTER_LENGTH * sizeof(float), cudaMemcpyHostToDevice);
-	timer.Stop();
-	overal_time = overal_time + timer.Elapsed();
+	cudaMemcpyToSymbol( d_Filter, h_Filter, sizeof(h_Filter));
 	cudaCheckError();
 
-	timer.Start();
 	cudaMemcpy(d_Input, h_Input, imageW * imageH * sizeof(float), cudaMemcpyHostToDevice);
-	timer.Stop();
-	overal_time = overal_time + timer.Elapsed();
 	cudaCheckError();
 
 	// To parakatw einai to kommati pou ekteleitai sthn CPU kai me vash auto prepei na ginei h sugrish me thn GPU.
@@ -283,7 +259,7 @@ int main(int argc, char **argv) {
 
 	dim3 threads(threadsPerBlock, threadsPerBlock);
 
-	int blocksPerGrid = 2;
+	int blocksPerGrid = imageH / TILE_WIDTH;
 
 	dim3 grid(blocksPerGrid,blocksPerGrid);
 
@@ -291,7 +267,7 @@ int main(int argc, char **argv) {
 	printf("CUDA kernel launch with %d blocks of %d threads\n", blocksPerGrid*blocksPerGrid, threadsPerBlock*threadsPerBlock);
 
 	timer.Start();
-	convolutionRowDevice<<<grid, threads>>>(d_Buffer, d_Input, d_Filter,imageW, imageH, filter_radius);
+	convolutionRowDevice<<<grid, threads>>>(d_Buffer, d_Input, imageW, imageH, filter_radius);
 	timer.Stop();
 	overal_time = overal_time + timer.Elapsed();
 	cudaCheckError();
@@ -303,7 +279,7 @@ int main(int argc, char **argv) {
 	printf("CUDA kernel launch with %d blocks of %d threads\n", blocksPerGrid*blocksPerGrid, threadsPerBlock*threadsPerBlock);
 
 	timer.Start();
-	convolutionColumnDevice<<<grid, threads>>>(d_OutputD, d_Buffer, d_Filter,imageW, imageH, filter_radius);
+	convolutionColumnDevice<<<grid, threads>>>(d_OutputD, d_Buffer, imageW, imageH, filter_radius);
 	timer.Stop();
 	overal_time = overal_time + timer.Elapsed();
 	cudaCheckError();
@@ -315,10 +291,7 @@ int main(int argc, char **argv) {
     // in host memorycomment
     printf("Copy output data from the CUDA device to the host memory\n");
 
-	timer.Start();
     cudaMemcpy(h_OutputGPU, d_OutputD, imageW * imageH * sizeof(float), cudaMemcpyDeviceToHost);
-	timer.Stop();
-	overal_time = overal_time + timer.Elapsed();
 
 	cudaCheckError();
 #ifdef DEBUG
@@ -350,7 +323,6 @@ int main(int argc, char **argv) {
 	free(h_OutputCPU);
 	free(h_Buffer);
 	free(h_Input);
-	free(h_Filter);
 
 	cudaFree(d_OutputD);
 	cudaCheckError();
@@ -360,9 +332,6 @@ int main(int argc, char **argv) {
 
 	cudaFree(d_Input);
 	cudaCheckError();
-
-	//cudaFree(d_Filter);
-	//cudaCheckError();
 
 	// Do a device reset just in case... Bgalte to sxolio otan ylopoihsete CUDA
 	cudaDeviceReset();
