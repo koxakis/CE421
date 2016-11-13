@@ -10,7 +10,7 @@
 
 unsigned int filter_radius;
 GpuTimer timer;
-double overal_time = 0;
+double overal_GPU_time = 0, overal_data_transfer_time = 0;
 clock_t start, end;
 double overal_CPU_time;
 
@@ -18,10 +18,34 @@ double overal_CPU_time;
 #define ABS(val)  	((val)<0.0 ? (-(val)) : (val))
 #define accuracy  	0.00005
 
+// Change the size of the tile and GPU thread block
 #define TILE_WIDTH 32
-#define TILE_HIGHT 32
+#define THREADS_PER_BLOCK 32
 
+// Remove to set block and tile size indepentently
+#define LOCK_BLOCK_TILE
+
+// Use 48KB for shared memory and 16KB for L1 cache
+// Remove for opposite
+#define PREF_SHARED
+
+// Enable to compare with the CPU result
 #define DEBUG
+
+// FLOAT_D for floats DOUBLE_D for doubles
+// Remove to use integer data type
+#define FLOAT_D
+
+// Filter array size change accordingly
+#define FILTER_ARRAY_SIZE 33
+// Variable data types
+#ifdef FLOAT_D
+typedef float vart_t;
+#elif defined DOUBLE_D
+typedef double vart_t;
+#else
+typedef int vart_t;
+#endif
 
 #define cudaCheckError() {                                                                       \
         cudaError_t e=cudaGetLastError();                                                        \
@@ -34,13 +58,13 @@ double overal_CPU_time;
 ////////////////////////////////////////////////////////////////////////////////
 // Reference row convolution filter
 ////////////////////////////////////////////////////////////////////////////////
-void convolutionRowCPU(float *h_Dst, float *h_Src, float *h_Filter,int imageW, int imageH, int filterR) {
+void convolutionRowCPU(vart_t *h_Dst, vart_t *h_Src, vart_t *h_Filter,int imageW, int imageH, int filterR) {
 
 	int x, y, k;
 
 	for (y = 0; y < imageH; y++) {
 		for (x = 0; x < imageW; x++) {
-			float sum = 0;
+			vart_t sum = 0;
 
 			for (k = -filterR; k <= filterR; k++) {
 				int d = x + k;
@@ -60,13 +84,13 @@ void convolutionRowCPU(float *h_Dst, float *h_Src, float *h_Filter,int imageW, i
 ////////////////////////////////////////////////////////////////////////////////
 // Reference column convolution filter
 ////////////////////////////////////////////////////////////////////////////////
-void convolutionColumnCPU(float *h_Dst, float *h_Src, float *h_Filter,int imageW, int imageH, int filterR) {
+void convolutionColumnCPU(vart_t *h_Dst, vart_t *h_Src, vart_t *h_Filter,int imageW, int imageH, int filterR) {
 
 	int x, y, k;
 
 	for (y = 0; y < imageH; y++) {
 		for (x = 0; x < imageW; x++) {
-			float sum = 0;
+			vart_t sum = 0;
 
 			for (k = -filterR; k <= filterR; k++) {
 				int d = y + k;
@@ -86,20 +110,24 @@ void convolutionColumnCPU(float *h_Dst, float *h_Src, float *h_Filter,int imageW
 // Device code
 ////////////////////////////////////////////////////////////////////////////////
 
-__constant__ float d_Filter[33];
+__constant__ vart_t d_Filter[FILTER_ARRAY_SIZE];
 
 __global__ void
-convolutionRowDevice(float *d_Dst, float *d_Src, int imageW, int imageH, int filterR)
+convolutionRowDevice(vart_t *d_Dst, vart_t *d_Src, int imageW, int imageH, int filterR)
 {
 	int k;
 
-	int row = blockIdx.x * blockDim.x + threadIdx.x;
-	int col = blockIdx.y * blockDim.y + threadIdx.y;
-	__shared__ float tiled_block[TILE_WIDTH][TILE_HIGHT];
+	// Thread location in the grid
+	int col = blockIdx.x * blockDim.x + threadIdx.x;
+	int row = blockIdx.y * blockDim.y + threadIdx.y;
 
-	float sum = 0;
+	// Shared memory decleration
+	__shared__ vart_t tiled_block[TILE_WIDTH][TILE_WIDTH];
+
+	vart_t sum = 0;
+
+	// Collaboratively load tiles into __shared__
 	tiled_block[threadIdx.y][threadIdx.x] = d_Src[col*imageH + row ];
-
 	__syncthreads();
 
 	for (k = -filterR; k <= filterR; k++) {
@@ -117,24 +145,28 @@ convolutionRowDevice(float *d_Dst, float *d_Src, int imageW, int imageH, int fil
 
 
 __global__ void
-convolutionColumnDevice(float *d_Dst, float *d_Src, int imageW, int imageH, int filterR)
+convolutionColumnDevice(vart_t *d_Dst, vart_t *d_Src, int imageW, int imageH, int filterR)
 {
 	int k;
 
-	int row = blockIdx.x * blockDim.x + threadIdx.x;
-	int col = blockIdx.y * blockDim.y + threadIdx.y;
-	__shared__ float tiled_block[TILE_WIDTH][TILE_HIGHT];
+	// Thread location in the grid
+	int col = blockIdx.x * blockDim.x + threadIdx.x;
+	int row = blockIdx.y * blockDim.y + threadIdx.y;
+
+	// Shared memory decleration
+	__shared__ vart_t tiled_block[TILE_WIDTH][TILE_WIDTH];
 
 
-	float sum = 0;
+	vart_t sum = 0;
+
+	// Collaboratively load tiles into __shared__
 	tiled_block[threadIdx.y][threadIdx.x] = d_Src[col*imageH + row ];
-
 	__syncthreads();
 
 	for (k = -filterR; k <= filterR; k++) {
 		int d = threadIdx.y + k;
 
-		if (d >= 0 && d < TILE_HIGHT) {
+		if (d >= 0 && d < TILE_WIDTH) {
 			//sum += h_Src[d * imageW + x] * h_Filter[filterR - k];
 			sum += tiled_block[d][threadIdx.x] * d_Filter[filterR -k];
 		}
@@ -144,19 +176,25 @@ convolutionColumnDevice(float *d_Dst, float *d_Src, int imageW, int imageH, int 
 
 }
 
+__global__ void testFilter(int filterR) {
+	for (int i = 0; i < (filterR*2)+1; i++) {
+		printf(" %g\n", d_Filter[i]);
+	}
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // Main program
 ////////////////////////////////////////////////////////////////////////////////
 int main(int argc, char **argv) {
 
-	float
-	h_Filter[33],
+	vart_t
+	h_Filter[FILTER_ARRAY_SIZE],
 	*h_Input,
 	*h_Buffer,
 	*h_OutputCPU,
 	*h_OutputGPU;
 
-	float
+	vart_t
 	*d_Input,
 	*d_Buffer,
 	*d_OutputD;
@@ -194,28 +232,29 @@ int main(int argc, char **argv) {
 	// Tha htan kalh idea na elegxete kai to apotelesma twn malloc...
 	// Host mallocs
 
-	h_Input     = (float *)malloc(imageW * imageH * sizeof(float));
-	h_Buffer    = (float *)malloc(imageW * imageH * sizeof(float));
-	h_OutputCPU = (float *)malloc(imageW * imageH * sizeof(float));
-	h_OutputGPU = (float *)malloc(imageW * imageH * sizeof(float));
+	h_Input     = (vart_t *)malloc(imageW * imageH * sizeof(vart_t));
+	h_Buffer    = (vart_t *)malloc(imageW * imageH * sizeof(vart_t));
+	h_OutputCPU = (vart_t *)malloc(imageW * imageH * sizeof(vart_t));
+	h_OutputGPU = (vart_t *)malloc(imageW * imageH * sizeof(vart_t));
 
 	if ( h_Filter == NULL || h_Input == NULL || h_Buffer == NULL || h_OutputCPU == NULL || h_OutputGPU == NULL) {
-		fprintf(stderr, "Failed to allocate Host matrices!\n");
+		fprintf(stderr, "Failed to allocate Host arrays!\n");
         exit(EXIT_FAILURE);
 	}
 
 	printf("Allocating Device arrays...\n");
 
+	// Device mallocs
 	d_Input = NULL;
-	cudaMalloc((void **)&d_Input, imageW * imageH * sizeof(float));
+	cudaMalloc((void **)&d_Input, imageW * imageH * sizeof(vart_t));
 	cudaCheckError();
 
 	d_Buffer = NULL;
-	cudaMalloc((void **)&d_Buffer, imageW * imageH * sizeof(float));
+	cudaMalloc((void **)&d_Buffer, imageW * imageH * sizeof(vart_t));
 	cudaCheckError();
 
 	d_OutputD = NULL;
-	cudaMalloc((void **)&d_OutputD, imageW * imageH * sizeof(float));
+	cudaMalloc((void **)&d_OutputD, imageW * imageH * sizeof(vart_t));
 	cudaCheckError();
 
 	// to 'h_Filter' apotelei to filtro me to opoio ginetai to convolution kai
@@ -224,26 +263,37 @@ int main(int argc, char **argv) {
 	printf("Initializing Host arrays...\n");
 	srand(200);
 
+	// Host arrays initialization
 	for (i = 0; i < FILTER_LENGTH; i++) {
-		h_Filter[i] = (float)(rand() % 16);
+		h_Filter[i] = (vart_t)(rand() % 16);
+	}
+	for (int i = 0; i < FILTER_LENGTH; i++) {
+		printf(" %g\n", h_Filter[i]);
 	}
 	for (i = 0; i < imageW * imageH; i++) {
-		h_Input[i] = (float)rand() / ((float)RAND_MAX / 255) + (float)rand() / (float)RAND_MAX;
+		h_Input[i] = (vart_t)rand() / ((vart_t)RAND_MAX / 255) + (vart_t)rand() / (vart_t)RAND_MAX;
 	}
 
 	printf("Initializing Device arrays...\n");
 	// Transfer Data to Device
-	//cudaMemcpy(d_Filter, h_Filter, FILTER_LENGTH * sizeof(float), cudaMemcpyHostToDevice);
-	cudaMemcpyToSymbol( d_Filter, h_Filter, sizeof(h_Filter));
+	//cudaMemcpy(d_Filter, h_Filter, FILTER_LENGTH * sizeof(vart_t), cudaMemcpyHostToDevice);
+	timer.Start();
+	cudaMemcpyToSymbol( d_Filter, h_Filter, FILTER_ARRAY_SIZE * sizeof(vart_t));
+	timer.Stop();
+	overal_data_transfer_time += timer.Elapsed();
 	cudaCheckError();
 
-	cudaMemcpy(d_Input, h_Input, imageW * imageH * sizeof(float), cudaMemcpyHostToDevice);
+	timer.Start();
+	cudaMemcpy(d_Input, h_Input, imageW * imageH * sizeof(vart_t), cudaMemcpyHostToDevice);
+	timer.Stop();
+	overal_data_transfer_time += timer.Elapsed();
 	cudaCheckError();
 
 	// To parakatw einai to kommati pou ekteleitai sthn CPU kai me vash auto prepei na ginei h sugrish me thn GPU.
 	printf("CPU computation...\n");
 
 #ifdef DEBUG
+	// CPU execution
 	start = clock();
 	convolutionRowCPU(h_Buffer, h_Input, h_Filter, imageW, imageH, filter_radius); // convolution kata grammes
 	convolutionColumnCPU(h_OutputCPU, h_Buffer, h_Filter, imageW, imageH, filter_radius); // convolution kata sthles
@@ -255,13 +305,35 @@ int main(int argc, char **argv) {
 	printf("GPU computation...\n");
 
 	// Kernel paramiters prep
-	int threadsPerBlock = TILE_WIDTH;
+	int threadsPerBlock;
+	int blocksPerGrid;
+#ifdef LOCK_BLOCK_TILE
+	threadsPerBlock = TILE_WIDTH;
+	blocksPerGrid = N / TILE_WIDTH;
+#else
+	if (N >= 32){
+		threadsPerBlock = THREADS_PER_BLOCK;
+		blocksPerGrid =  N/THREADS_PER_BLOCK;
+	}else{
+		threadsPerBlock = N;
+		blocksPerGrid = 1;
+	}
+#endif
 
 	dim3 threads(threadsPerBlock, threadsPerBlock);
-
-	int blocksPerGrid = imageH / TILE_WIDTH;
-
 	dim3 grid(blocksPerGrid,blocksPerGrid);
+
+#ifdef PREF_SHARED
+	cudaFuncSetCacheConfig(convolutionRowDevice, cudaFuncCachePreferShared);
+	cudaFuncSetCacheConfig(convolutionColumnDevice, cudaFuncCachePreferShared);
+#else
+	cudaFuncSetCacheConfig(convolutionRowDevice, cudaFuncCachePreferL1);
+	cudaFuncSetCacheConfig(convolutionColumnDevice, cudaFuncCachePreferL1);
+#endif
+
+	testFilter<<<1,1>>>(filter_radius);
+	cudaDeviceSynchronize();
+	cudaCheckError();
 
 	// convolution by rows device
 	printf("CUDA kernel launch with %d blocks of %d threads\n", blocksPerGrid*blocksPerGrid, threadsPerBlock*threadsPerBlock);
@@ -269,7 +341,7 @@ int main(int argc, char **argv) {
 	timer.Start();
 	convolutionRowDevice<<<grid, threads>>>(d_Buffer, d_Input, imageW, imageH, filter_radius);
 	timer.Stop();
-	overal_time = overal_time + timer.Elapsed();
+	overal_GPU_time += timer.Elapsed();
 	cudaCheckError();
 
 	cudaDeviceSynchronize();
@@ -281,7 +353,7 @@ int main(int argc, char **argv) {
 	timer.Start();
 	convolutionColumnDevice<<<grid, threads>>>(d_OutputD, d_Buffer, imageW, imageH, filter_radius);
 	timer.Stop();
-	overal_time = overal_time + timer.Elapsed();
+	overal_GPU_time += timer.Elapsed();
 	cudaCheckError();
 
 	cudaDeviceSynchronize();
@@ -291,12 +363,15 @@ int main(int argc, char **argv) {
     // in host memorycomment
     printf("Copy output data from the CUDA device to the host memory\n");
 
-    cudaMemcpy(h_OutputGPU, d_OutputD, imageW * imageH * sizeof(float), cudaMemcpyDeviceToHost);
+	timer.Start();
+    cudaMemcpy(h_OutputGPU, d_OutputD, imageW * imageH * sizeof(vart_t), cudaMemcpyDeviceToHost);
+	timer.Stop();
+	overal_data_transfer_time += timer.Elapsed();
 
 	cudaCheckError();
 #ifdef DEBUG
 	printf("\nComparing the outputs\n");
-    float max_diff=0, temp;
+    vart_t max_diff=0, temp;
 
     for (unsigned i = 0; i < imageW * imageH; i++)
     {
@@ -312,12 +387,22 @@ int main(int argc, char **argv) {
     }
 
     printf("Max diff: %g\n\n", max_diff);
-#endif
-	printf("Time elapsed on GPU = %g ms\n", overal_time);
 
 	overal_CPU_time = (double)(end - start) * 1000.0 / CLOCKS_PER_SEC ;
 	printf ("Time elapsed on CPU = %g ms\n", overal_CPU_time);
 
+	printf("\nSettings used: \nTile width %d block size %d ", TILE_WIDTH, threads.x);
+	printf("\nTime elapsed on GPU( computation) = %g ms\n", overal_GPU_time);
+
+	printf("\nTime elapsed on GPU( memory transfers) = %g ms", overal_data_transfer_time);
+
+	printf("\nTime elapsed on GPU( overal) = %g ms\n", overal_GPU_time + overal_data_transfer_time);
+
+#else
+
+	printf("\nSettings used: \nTile width %d block size %d ", TILE_WIDTH, threads.x);
+	printf("Time elapsed on GPU( computation) = %g ms\n", overal_GPU_time);
+#endif
 
 	// free all the allocated memory
 	free(h_OutputCPU);
