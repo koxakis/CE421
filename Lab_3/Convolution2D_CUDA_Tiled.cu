@@ -19,11 +19,11 @@ double overal_CPU_time;
 #define accuracy  	0.00005
 
 // Change the size of the tile and GPU thread block
-#define TILE_WIDTH 32
-#define THREADS_PER_BLOCK 32
+#define TILE_WIDTH 4
+#define THREADS_PER_BLOCK 4
 
 // Remove to set block and tile size indepentently
-#define LOCK_BLOCK_TILE
+//#define LOCK_BLOCK_TILE
 
 // Use 48KB for shared memory and 16KB for L1 cache
 // Remove for opposite
@@ -34,10 +34,10 @@ double overal_CPU_time;
 
 // FLOAT_D for floats DOUBLE_D for doubles
 // Remove to use integer data type
-#define FLOAT_D
+//#define FLOAT_D
 
 // Filter array size change accordingly
-#define FILTER_ARRAY_SIZE 33
+#define FILTER_ARRAY_SIZE 3
 // Variable data types
 #ifdef FLOAT_D
 typedef float vart_t;
@@ -176,11 +176,6 @@ convolutionColumnDevice(vart_t *d_Dst, vart_t *d_Src, int imageW, int imageH, in
 
 }
 
-__global__ void testFilter(int filterR) {
-	for (int i = 0; i < (filterR*2)+1; i++) {
-		printf(" %g\n", d_Filter[i]);
-	}
-}
 
 ////////////////////////////////////////////////////////////////////////////////
 // Main program
@@ -267,13 +262,16 @@ int main(int argc, char **argv) {
 	for (i = 0; i < FILTER_LENGTH; i++) {
 		h_Filter[i] = (vart_t)(rand() % 16);
 	}
-	for (int i = 0; i < FILTER_LENGTH; i++) {
-		printf(" %g\n", h_Filter[i]);
-	}
-	for (i = 0; i < imageW * imageH; i++) {
+	for (int i = 0; i < imageW * imageH; i++) {
 		h_Input[i] = (vart_t)rand() / ((vart_t)RAND_MAX / 255) + (vart_t)rand() / (vart_t)RAND_MAX;
 	}
+	for (int i = 0; i < FILTER_LENGTH; i++) {
+		printf("%d\n", h_Filter[i]);
+	}
 
+	for (int i = 0; i < imageH * imageW; i++) {
+		printf(" %d \n", h_Input[i]);
+	}
 	printf("Initializing Device arrays...\n");
 	// Transfer Data to Device
 	//cudaMemcpy(d_Filter, h_Filter, FILTER_LENGTH * sizeof(vart_t), cudaMemcpyHostToDevice);
@@ -331,10 +329,6 @@ int main(int argc, char **argv) {
 	cudaFuncSetCacheConfig(convolutionColumnDevice, cudaFuncCachePreferL1);
 #endif
 
-	testFilter<<<1,1>>>(filter_radius);
-	cudaDeviceSynchronize();
-	cudaCheckError();
-
 	// convolution by rows device
 	printf("CUDA kernel launch with %d blocks of %d threads\n", blocksPerGrid*blocksPerGrid, threadsPerBlock*threadsPerBlock);
 
@@ -371,9 +365,18 @@ int main(int argc, char **argv) {
 	cudaCheckError();
 #ifdef DEBUG
 	printf("\nComparing the outputs\n");
+
+	for (int i = 0; i < imageH * imageW; i++) {
+		printf(" %d \n", h_OutputCPU[i]);
+	}
+	printf("\n\n\n" );
+	for (int i = 0; i < imageH * imageW; i++) {
+		printf(" %d \n", h_OutputGPU[i]);
+	}
+
     vart_t max_diff=0, temp;
 
-    for (unsigned i = 0; i < imageW * imageH; i++)
+    for (int i = 0; i < imageW * imageH; i++)
     {
     	temp = ABS(h_OutputCPU[i] - h_OutputGPU[i]);
 		if (max_diff < temp) {
@@ -386,7 +389,7 @@ int main(int argc, char **argv) {
 		}
     }
 
-    printf("Max diff: %g\n\n", max_diff);
+    printf("Max diff: %d \n\n", max_diff);
 
 	overal_CPU_time = (double)(end - start) * 1000.0 / CLOCKS_PER_SEC ;
 	printf ("Time elapsed on CPU = %g ms\n", overal_CPU_time);

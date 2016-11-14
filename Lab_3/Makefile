@@ -1,20 +1,18 @@
 #Add any executable you want to be created here.
-EXECUTABLES	= Convolution2D_CUDA_Grid Convolution2D_CUDA_Tiled
+EXECUTABLES	= Convolution2D_CUDA_Gird Convolution2D_CUDA_Tiled
 
 #This is the compiler to use
 CC = nvcc
 
 #These are the flags passed to the compiler. Change accordingly
-CFLAGS = -arch sm_30 -lineinfo -Xcompiler -Wall -O4 -g
+CFLAGS = -arch sm_30 -lineinfo --ptxas-options=-v -Xcompiler -Wall -O4 -g
 
 #These are the flags passed to the linker. Nothing in our case
 LDFLAGS = -lm
 
 # make all will create all executables
-Convolution2D_CUDA_Grid: Convolution2D_CUDA_Grid.cu
+Convolution2D_CUDA_Gird: Convolution2D_CUDA_Gird.cu.cu
 
-# This is the rule to create any executable from the corresponding .c
-# file with the same name.
 %: %.cu
 	$(CC) $(CFLAGS) -o $@ $< $(LDFLAGS)
 
