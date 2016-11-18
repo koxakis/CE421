@@ -1,5 +1,5 @@
 #Add any executable you want to be created here.
-EXECUTABLES	= Convolution2D_CUDA_Gird Convolution2D_CUDA_Tiled
+EXECUTABLES	= Convolution2D_CUDA_Gird Convolution2D_CUDA_Tiled Convolution2D_CUDA_Tiled_test
 
 #This is the compiler to use
 CC = nvcc
@@ -17,6 +17,11 @@ Convolution2D_CUDA_Gird: Convolution2D_CUDA_Gird.cu
 	$(CC) $(CFLAGS) -o $@ $< $(LDFLAGS)
 
 Convolution2D_CUDA_Tiled: Convolution2D_CUDA_Tiled.cu
+
+%: %.cu
+	$(CC) $(CFLAGS) -o $@ $< $(LDFLAGS)
+
+Convolution2D_CUDA_Tiled_test: Convolution2D_CUDA_Tiled_test.cu
 
 %: %.cu
 	$(CC) $(CFLAGS) -o $@ $< $(LDFLAGS)
