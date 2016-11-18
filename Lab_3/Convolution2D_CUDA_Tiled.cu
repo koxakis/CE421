@@ -22,10 +22,10 @@ int blocksPerGrid;
 #define accuracy  	0.00005
 
 // Filter array size change accordingly
-#define FILTER_ARRAY_SIZE 3
+#define FILTER_ARRAY_SIZE 33
 // Change the size of the tile and GPU thread block
-#define TILE_WIDTH 4
-#define THREADS_PER_BLOCK 4
+#define TILE_WIDTH 64
+#define THREADS_PER_BLOCK 32
 
 // Remove to set block and tile size indepentently
 //#define LOCK_BLOCK_TILE
@@ -39,7 +39,7 @@ int blocksPerGrid;
 
 // FLOAT_D for floats DOUBLE_D for doubles
 // Remove to use integer data type
-//#define FLOAT_D
+#define FLOAT_D
 
 // Variable data types
 #ifdef FLOAT_D
@@ -412,18 +412,16 @@ int main(int argc, char **argv) {
     for (int i = 0; i < imageW * imageH; i++)
     {
     	temp = ABS(h_OutputCPU[i] - h_OutputGPU[i]);
-		if (temp > 0) {
-			printf("pos i %d CPU %d GPU %d\n", i, h_OutputCPU[i], h_OutputGPU[i]);
-		}
+		/*if (temp > 0) {
+			printf("pos i %d CPU %g GPU %g\n", i, h_OutputCPU[i], h_OutputGPU[i]);
+		}*/
 		if (max_diff < temp) {
 			max_diff = temp;
 		}
-/*
 		if ( max_diff > accuracy){
 			printf("The accuracy is not good enough\n" );
 			break;
 		}
-		*/
     }
 #ifdef FLOAT_D
     printf("Max diff: %g \n\n", max_diff);
