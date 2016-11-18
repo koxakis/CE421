@@ -124,8 +124,7 @@ convolutionRowDevice(vart_t *d_Dst, vart_t *d_Src, int imageW, int imageH, int f
 	//int row = blockIdx.y * blockDim.y + threadIdx.y;
 
 	int generic_loc = col + (threadIdx.y * imageW) + (blockIdx.y * blockDim.y) * imageW;
-	int pad = threadIdx.y * (TILE_WIDTH + filterR *2);
-
+	
 	// Shared memory decleration
 	__shared__ vart_t tiled_block[TILE_WIDTH + FILTER_ARRAY_SIZE-1][ TILE_WIDTH ];
 
