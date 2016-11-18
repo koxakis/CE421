@@ -11,7 +11,7 @@ CFLAGS = -arch sm_30 -lineinfo --ptxas-options=-v -Xcompiler -Wall -O4 -g
 LDFLAGS = -lm
 
 # make all will create all executables
-Convolution2D_CUDA_Gird: Convolution2D_CUDA_Gird.cu.cu
+Convolution2D_CUDA_Gird: Convolution2D_CUDA_Gird.cu
 
 %: %.cu
 	$(CC) $(CFLAGS) -o $@ $< $(LDFLAGS)
