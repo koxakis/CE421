@@ -22,10 +22,10 @@ int blocksPerGrid;
 #define accuracy  	0.00005
 
 // Filter array size change accordingly
-#define FILTER_ARRAY_SIZE 33
+#define FILTER_ARRAY_SIZE 3
 // Change the size of the tile and GPU thread block
-#define TILE_WIDTH 32
-#define THREADS_PER_BLOCK 32
+#define TILE_WIDTH 4
+#define THREADS_PER_BLOCK 4
 
 // Remove to set block and tile size indepentently
 //#define LOCK_BLOCK_TILE
@@ -112,7 +112,7 @@ void convolutionColumnCPU(vart_t *h_Dst, vart_t *h_Src, vart_t *h_Filter,int ima
 // Device code
 ////////////////////////////////////////////////////////////////////////////////
 
-__constant__ vart_t d_Filter[FILTER_ARRAY_SIZE];
+__device__ __constant__ vart_t d_Filter[FILTER_ARRAY_SIZE];
 
 __global__ void
 convolutionRowDevice(vart_t *d_Dst, vart_t *d_Src, int imageW, int imageH, int filterR, int blk_per_grid)
@@ -142,30 +142,26 @@ convolutionRowDevice(vart_t *d_Dst, vart_t *d_Src, int imageW, int imageH, int f
 		tiled_block[threadIdx.x + pad] = d_Src[generic_loc - filterR ];
 	}
 	// Right load
-	if ((col - filterR) > imageW-1) {
+	if ((col + filterR) > imageW-1) {
 		tiled_block[threadIdx.x + blockDim.x + pad] = 0;
 	}else{
 		tiled_block[threadIdx.x + blockDim.x + pad] = d_Src[generic_loc + filterR];
 	}
 
-	if (threadIdx.x == 0 && threadIdx.y == 0) {
-		for (int i = 0; i < TILE_WIDTH * (TILE_WIDTH + FILTER_ARRAY_SIZE-1) ; i++) {
-			printf("%g \n", tiled_block[i]);
-		}
-	}
 	__syncthreads();
 
 	for (k = -filterR; k <= filterR; k++) {
-		int d = threadIdx.x + k;
+		//int d = threadIdx.x + k;
 
-		if (d >= 0 && d < TILE_WIDTH) {
+		//if (d >= 0 && d < TILE_WIDTH) {
 			//sum += h_Src[y * imageW + d] * h_Filter[filterR - k];
-			sum += tiled_block[(filterR+threadIdx.x) + k + pad] * d_Filter[filterR - k];
-		}
+			sum += tiled_block[(filterR+threadIdx.x) + k + pad] * d_Filter[filterR + k];
+		//}
 		//h_Dst[y * imageW + x] = sum;
 
-		d_Dst[generic_loc] = sum;
+		//d_Dst[generic_loc] = sum;
 	}
+	d_Dst[generic_loc] = sum;
 	//printf(" %d %d\n", d_Dst[col * imageW + row], col * imageW + row);
 }
 
@@ -198,7 +194,7 @@ convolutionColumnDevice(vart_t *d_Dst, vart_t *d_Src, int imageW, int imageH, in
 		tiled_block[threadIdx.x + pad] = d_Src[generic_loc - (imageW * filterR)];
 	}
 	// Lower load
-	if ((row - filterR) > imageW-1) {
+	if ((row + filterR) > imageW-1) {
 		tiled_block[threadIdx.x + blockDim.y + pad] = 0;
 	}else{
 		tiled_block[threadIdx.x + blockDim.y + pad] = d_Src[generic_loc + (imageW * filterR) ];
@@ -206,17 +202,19 @@ convolutionColumnDevice(vart_t *d_Dst, vart_t *d_Src, int imageW, int imageH, in
 
 	__syncthreads();
 
-	for (k = -filterR; k <= filterR; k++) {
-		int d = threadIdx.y + k;
+	//for (k = -filterR; k <= filterR; k++) {
+	for (k = 0; k <= filterR*2; k++) {
+		//int d = threadIdx.y + k;
 
-		if (d >= 0 && d < TILE_WIDTH) {
+		//if (d >= 0 && d < TILE_WIDTH) {
 			//sum += h_Src[d * imageW + x] * h_Filter[filterR - k];
-			sum += tiled_block[threadIdx.x + (threadIdx.y + k) * TILE_WIDTH] * d_Filter[filterR -k];
-		}
+			sum += tiled_block[threadIdx.x + (threadIdx.y + k) * TILE_WIDTH] * d_Filter[k];
+		//}
 		//h_Dst[y * imageW + x] = sum;
 
-		d_Dst[generic_loc] = sum;
+		//d_Dst[generic_loc] = sum;
 	}
+	d_Dst[generic_loc] = sum;
 	//printf(" %d %d\n", d_Dst[col * imageW + row], col * imageW + row);
 
 }
@@ -314,10 +312,10 @@ int main(int argc, char **argv) {
 	for (int i = 0; i < FILTER_LENGTH; i++) {
 		printf("%d\n", h_Filter[i]);
 	}
-	*/
+	*//*
 	for (int i = 0; i < imageH * imageW; i++) {
 		printf(" %d \n", h_Input[i]);
-	}
+	} */
 	printf("Initializing Device arrays...\n");
 	// Transfer Data to Device
 	timer.Start();
