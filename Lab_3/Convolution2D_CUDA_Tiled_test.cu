@@ -121,20 +121,17 @@ convolutionRowDevice(vart_t *d_Dst, vart_t *d_Src, int imageW, int imageH, int f
 
 	// Thread location in the grid
 	int col = blockIdx.x * blockDim.x + threadIdx.x;
-	int row = blockIdx.y * blockDim.y + threadIdx.y;
+	//int row = blockIdx.y * blockDim.y + threadIdx.y;
 
 	int generic_loc = col + (threadIdx.y * imageW) + (blockIdx.y * blockDim.y) * imageW;
 	int pad = threadIdx.y * (TILE_WIDTH + filterR *2);
 
 	// Shared memory decleration
-	//__shared__ vart_t tiled_block[TILE_WIDTH][TILE_WIDTH + (FILTER_ARRAY_SIZE-1) ];
 	__shared__ vart_t tiled_block[TILE_WIDTH + FILTER_ARRAY_SIZE-1][ TILE_WIDTH ];
 
 	vart_t sum = 0;
 
 	// Collaboratively load tiles into __shared__
-	// Main load
-	//tiled_block[threadIdx.y][threadIdx.x+filterR] = d_Src[col*imageH + row ];
 	// Left load
 	if ((col - filterR) < 0){
 		tiled_block[threadIdx.x][threadIdx.y] = 0;
@@ -176,18 +173,14 @@ convolutionColumnDevice(vart_t *d_Dst, vart_t *d_Src, int imageW, int imageH, in
 	int row = blockIdx.y * blockDim.y + threadIdx.y;
 
 	int generic_loc = col + (threadIdx.y * imageW) + (blockIdx.y * blockDim.y) * imageW;
-	int pad = threadIdx.y * (TILE_WIDTH + filterR *2);
 
 	// Shared memory decleration
-	//__shared__ vart_t tiled_block[TILE_WIDTH][TILE_WIDTH + (FILTER_ARRAY_SIZE-1) ];
 	__shared__ vart_t tiled_block[TILE_WIDTH][ TILE_WIDTH + (FILTER_ARRAY_SIZE-1) ];
 
 	vart_t sum = 0;
 
 	// Collaboratively load tiles into __shared__
 	// Main load
-	//tiled_block[threadIdx.y][threadIdx.x+filterR] = d_Src[col*imageH + row ];
-	// Upper load
 	if ((row - filterR) < 0){
 		tiled_block[threadIdx.x][threadIdx.y] = 0;
 	}else{
