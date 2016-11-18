@@ -22,10 +22,10 @@ int blocksPerGrid;
 #define accuracy  	0.00005
 
 // Filter array size change accordingly
-#define FILTER_ARRAY_SIZE 3
+#define FILTER_ARRAY_SIZE 33
 // Change the size of the tile and GPU thread block
-#define TILE_WIDTH 4
-#define THREADS_PER_BLOCK 4
+#define TILE_WIDTH 32
+#define THREADS_PER_BLOCK 32
 
 // Remove to set block and tile size indepentently
 //#define LOCK_BLOCK_TILE
@@ -124,7 +124,7 @@ convolutionRowDevice(vart_t *d_Dst, vart_t *d_Src, int imageW, int imageH, int f
 	//int row = blockIdx.y * blockDim.y + threadIdx.y;
 
 	int generic_loc = col + (threadIdx.y * imageW) + (blockIdx.y * blockDim.y) * imageW;
-	
+
 	// Shared memory decleration
 	__shared__ vart_t tiled_block[TILE_WIDTH + FILTER_ARRAY_SIZE-1][ TILE_WIDTH ];
 
