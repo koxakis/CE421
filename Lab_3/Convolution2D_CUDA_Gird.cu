@@ -10,7 +10,7 @@
 
 unsigned int filter_radius;
 GpuTimer timer;
-double overal_time = 0;
+double overal_GPU_time = 0, overal_data_transfer_time = 0;
 clock_t start, end;
 double overal_CPU_time;
 
@@ -20,11 +20,13 @@ double overal_CPU_time;
 
 // FLOAT_D for floats DOUBLE_D for doubles
 // Remove to use integer data type
-#define DOUBLE_D
+#define FLOAT_D
+
+#define DEBUG
 
 // Use 48KB for shared memory and 16KB for L1 cache
 // Remove for opposite
-//#define PREF_SHARED
+#define PREF_SHARED
 
 // Variable data types
 #ifdef FLOAT_D
@@ -167,7 +169,7 @@ int main(int argc, char **argv) {
 	int imageW;
 	int imageH;
 	unsigned int N;
-	unsigned int i;
+	int i;
 
 	// Ta imageW, imageH ta dinei o xrhsths kai thewroume oti einai isa,
 	// dhladh imageW = imageH = N, opou to N to dinei o xrhsths.
@@ -235,7 +237,7 @@ int main(int argc, char **argv) {
 	for (i = 0; i < FILTER_LENGTH; i++) {
 		h_Filter[i] = (vart_t)(rand() % 16);
 	}
-	for (i = 0; i < imageW * imageH; i++) {
+	for ( i = 0; i < imageW * imageH; i++) {
 		h_Input[i] = (vart_t)rand() / ((vart_t)RAND_MAX / 255) + (vart_t)rand() / (vart_t)RAND_MAX;
 	}
 
@@ -244,13 +246,13 @@ int main(int argc, char **argv) {
 	timer.Start();
 	cudaMemcpy(d_Filter, h_Filter, FILTER_LENGTH * sizeof(vart_t), cudaMemcpyHostToDevice);
 	timer.Stop();
-	overal_time = overal_time + timer.Elapsed();
+	overal_data_transfer_time +=timer.Elapsed();
 	cudaCheckError();
 
 	timer.Start();
 	cudaMemcpy(d_Input, h_Input, imageW * imageH * sizeof(vart_t), cudaMemcpyHostToDevice);
 	timer.Stop();
-	overal_time = overal_time + timer.Elapsed();
+	overal_data_transfer_time += timer.Elapsed();
 	cudaCheckError();
 
 	// To parakatw einai to kommati pou ekteleitai sthn CPU kai me vash auto prepei na ginei h sugrish me thn GPU.
@@ -298,7 +300,7 @@ int main(int argc, char **argv) {
 	timer.Start();
 	convolutionRowDevice<<<grid, threads>>>(d_Buffer, d_Input, d_Filter, imageW, imageH, filter_radius);
 	timer.Stop();
-	overal_time = overal_time + timer.Elapsed();
+	overal_GPU_time += timer.Elapsed();
 	cudaCheckError();
 
 	cudaDeviceSynchronize();
@@ -310,7 +312,7 @@ int main(int argc, char **argv) {
 	timer.Start();
 	convolutionColumnDevice<<<grid, threads>>>(d_OutputD, d_Buffer, d_Filter, imageW, imageH, filter_radius);
 	timer.Stop();
-	overal_time = overal_time + timer.Elapsed();
+	overal_GPU_time += timer.Elapsed();
 	cudaCheckError();
 
 	cudaDeviceSynchronize();
@@ -323,14 +325,14 @@ int main(int argc, char **argv) {
 	timer.Start();
     cudaMemcpy(h_OutputGPU, d_OutputD, imageW * imageH * sizeof(vart_t), cudaMemcpyDeviceToHost);
 	timer.Stop();
-	overal_time = overal_time + timer.Elapsed();
+	overal_data_transfer_time += timer.Elapsed();
 
 	cudaCheckError();
 
 	printf("\nComparing the outputs\n");
     vart_t max_diff=0, temp;
 
-    for (unsigned i = 0; i < imageW * imageH; i++)
+    for (i = 0; i < imageW * imageH; i++)
     {
     	temp = ABS(h_OutputCPU[i] - h_OutputGPU[i]);
 		if (max_diff < temp) {
@@ -343,11 +345,24 @@ int main(int argc, char **argv) {
 		}
     }
 
-    printf("Max diff: %g\n\n", max_diff);
-	printf("Time elapsed on GPU = %g ms\n", overal_time);
+
+	printf("Max diff: %g \n\n", max_diff);
+
+#ifdef DEBUG
 
 	overal_CPU_time = (double)(end - start) * 1000.0 / CLOCKS_PER_SEC ;
 	printf ("Time elapsed on CPU = %g ms\n", overal_CPU_time);
+
+	printf("\nTime elapsed on GPU( computation) = %g ms\n", overal_GPU_time);
+
+	printf("\nTime elapsed on GPU( memory transfers) = %g ms", overal_data_transfer_time);
+
+	printf("\nTime elapsed on GPU( overal) = %g ms\n", overal_GPU_time + overal_data_transfer_time);
+
+#else
+
+	printf("Time elapsed on GPU( computation) = %g ms\n", overal_GPU_time);
+#endif
 
 
 	// free all the allocated memory

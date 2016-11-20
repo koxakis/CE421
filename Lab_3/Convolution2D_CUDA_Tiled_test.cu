@@ -101,8 +101,8 @@ void convolutionColumnCPU(vart_t *h_Dst, vart_t *h_Src, vart_t *h_Filter,int ima
 					sum += h_Src[d * imageW + x] * h_Filter[filterR - k];
 				}
 				h_Dst[y * imageW + x] = sum;
+
 			}
-			//printf("CPU %d %d\n", h_Dst[y * imageW + x], y * imageW + x);
 		}
 	}
 
@@ -143,22 +143,17 @@ convolutionRowDevice(vart_t *d_Dst, vart_t *d_Src, int imageW, int imageH, int f
 	}else{
 		tiled_block[threadIdx.x + blockDim.x][threadIdx.y] = d_Src[generic_loc + filterR];
 	}
+	// Main load
+	tiled_block[threadIdx.x][threadIdx.y] = d_Src[generic_loc ];
 
 	__syncthreads();
 
 	for (k = -filterR; k <= filterR; k++) {
-		//int d = threadIdx.x + k;
+		int d = threadIdx.x + filterR;
 
-		//if (d >= 0 && d < TILE_WIDTH) {
-			//sum += h_Src[y * imageW + d] * h_Filter[filterR - k];
-		sum += tiled_block[(threadIdx.x+filterR) + k][threadIdx.y] * d_Filter[filterR + k];
-		//}
-		//h_Dst[y * imageW + x] = sum;
-
-		//d_Dst[generic_loc] = sum;
+		sum += tiled_block[d + k][threadIdx.y] * d_Filter[filterR + k];
 	}
 	d_Dst[generic_loc] = sum;
-	//printf(" %d %d\n", d_Dst[col * imageW + row], col * imageW + row);
 }
 
 
@@ -179,7 +174,7 @@ convolutionColumnDevice(vart_t *d_Dst, vart_t *d_Src, int imageW, int imageH, in
 	vart_t sum = 0;
 
 	// Collaboratively load tiles into __shared__
-	// Main load
+	// Upper load
 	if ((row - filterR) < 0){
 		tiled_block[threadIdx.x][threadIdx.y] = 0;
 	}else{
@@ -191,23 +186,17 @@ convolutionColumnDevice(vart_t *d_Dst, vart_t *d_Src, int imageW, int imageH, in
 	}else{
 		tiled_block[threadIdx.x][threadIdx.y + blockDim.y] = d_Src[generic_loc + (imageW * filterR) ];
 	}
+	// Main load
+	tiled_block[threadIdx.x][threadIdx.y] = d_Src[generic_loc ];
 
 	__syncthreads();
 
-	//for (k = -filterR; k <= filterR; k++) {
 	for (k = -filterR; k <= filterR; k++) {
-		//int d = threadIdx.y + k;
+		int d = threadIdx.y + filterR;
 
-		//if (d >= 0 && d < TILE_WIDTH) {
-			//sum += h_Src[d * imageW + x] * h_Filter[filterR - k];
-			sum += tiled_block[threadIdx.x][(filterR + threadIdx.y) + k] * d_Filter[filterR + k];
-		//}
-		//h_Dst[y * imageW + x] = sum;
-
-		//d_Dst[generic_loc] = sum;
+		sum += tiled_block[threadIdx.x][k + d] * d_Filter[filterR + k];
 	}
 	d_Dst[generic_loc] = sum;
-	//printf(" %d %d\n", d_Dst[col * imageW + row], col * imageW + row);
 
 }
 
@@ -300,14 +289,6 @@ int main(int argc, char **argv) {
 	for (int i = 0; i < imageW * imageH; i++) {
 		h_Input[i] = (vart_t)rand() / ((vart_t)RAND_MAX / 255) + (vart_t)rand() / (vart_t)RAND_MAX;
 	}
-	/*
-	for (int i = 0; i < FILTER_LENGTH; i++) {
-		printf("%d\n", h_Filter[i]);
-	}
-	*//*
-	for (int i = 0; i < imageH * imageW; i++) {
-		printf(" %d \n", h_Input[i]);
-	} */
 	printf("Initializing Device arrays...\n");
 	// Transfer Data to Device
 	timer.Start();
@@ -404,9 +385,6 @@ int main(int argc, char **argv) {
     for (int i = 0; i < imageW * imageH; i++)
     {
     	temp = ABS(h_OutputCPU[i] - h_OutputGPU[i]);
-		/*if (temp > 0) {
-			printf("pos i %d CPU %g GPU %g\n", i, h_OutputCPU[i], h_OutputGPU[i]);
-		}*/
 		if (max_diff < temp) {
 			max_diff = temp;
 		}
@@ -420,6 +398,7 @@ int main(int argc, char **argv) {
 #else
 	printf("Max diff: %d \n\n", max_diff);
 #endif
+
 
 	overal_CPU_time = (double)(end - start) * 1000.0 / CLOCKS_PER_SEC ;
 	printf ("Time elapsed on CPU = %g ms\n", overal_CPU_time);
