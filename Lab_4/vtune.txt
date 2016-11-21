@@ -1,0 +1,7 @@
+HOTSPOT ADVANNCED HOTSPOT metrise ti pire to kathe ti
+
+CONCURENCY  pos ginete xrisi ton thread
+
+LOCK AND WAIT pou perimenei an exie locks
+
+HPC PERFORMANCE an xrisimopiei vectoring fp and stuff 

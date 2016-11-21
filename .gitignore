@@ -4,6 +4,7 @@
 *.obj
 *.elf
 
+main
 
 Convolution2D_CUDA_Grid
 Convolution2D_CUDA_Tiled
