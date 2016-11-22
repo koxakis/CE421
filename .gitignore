@@ -5,6 +5,8 @@
 *.elf
 
 main
+images/
+serial_code_golden/images/
 
 Convolution2D_CUDA_Grid
 Convolution2D_CUDA_Tiled
