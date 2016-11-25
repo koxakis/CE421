@@ -5,8 +5,8 @@
 *.elf
 
 main
-#images/
-#Lab_4/serial_code_golden/images/
+images/
+Lab_4/serial_code_golden/images/
 Lab_4/serial_code_golden/gold_mesuments/
 Lab_4/test_project
 
