@@ -13,11 +13,11 @@
 
 
 
-__global__ void histogramGPU ( int * d_hist_out, unsigned char * d_img_in, int img_size, int nbr_bin) {
+__global__ void histogramGPU ( int * d_hist_out, PGM_IMG d_img_in, int img_size, int nbr_bin) {
 	/* code */
 }
 
-__global__ void histogram_equalizationGPU ( unsigned char * d_img_out, unsigned char * d_img_in,
+__global__ void histogram_equalizationGPU ( PGM_IMG * d_img_out, PGM_IMG * d_img_in,
 											int * d_hist_in, int img_size, int nbr_bin) {
 	/* code */
 }
