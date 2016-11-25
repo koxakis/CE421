@@ -31,7 +31,7 @@ int main(int argc, char *argv[]){
     int hist[256];
 
 	// Device Variables
-	int *d_hist_in,
+	int *d_hist_out,
 		*d_img_in;
 
 	unsigned char *d_output;
@@ -74,8 +74,9 @@ int main(int argc, char *argv[]){
 	int threadsPerBlock = 32;
 	dim3 threads(threadsPerBlock, threadsPerBlock);
 
-	int blocksPerGrid =  N/threads.x;
-	dim3 grid(blocksPerGrid, blocksPerGrid);
+	int blocksPerGridx =  h_img_in.h/threads.x;
+	int blocksPerGridy =  h_img_in.w/threads.y;
+	dim3 grid(blocksPerGridy, blocksPerGridx);
 
 	histogramGPU<<<grid, threads>>>(d_hist_out, d_img_in, h_img_in.h * h_img_in.w, 256);
 	cudaCheckError();
