@@ -48,7 +48,7 @@ int main(int argc, char *argv[]){
 
 	printf("Allocating host memory...\n");
 	//Host memory allocation
-	h_img_out_buf.img = (unsigned char *)malloc(result.w * result.h * sizeof(unsigned char));
+	h_img_out_buf.img = (unsigned char *)malloc(h_img_out_buf.w * h_img_out_buf.h * sizeof(unsigned char));
 	if ( h_img_out_buf == NULL){
 		fprintf(stderr, "Failed to allocate Host memory!\n");
         exit(EXIT_FAILURE);
@@ -65,7 +65,7 @@ int main(int argc, char *argv[]){
 	cudaCheckError();
 
 	d_output = NULL;
-	cudaMalloc((void **)&d_output, result.w * result.h * sizeof(unsigned char));
+	cudaMalloc((void **)&d_output, h_img_out_buf.w * h_img_out_buf.h * sizeof(unsigned char));
 	cudaCheckError();
 
 	// Main Function call
@@ -74,8 +74,13 @@ int main(int argc, char *argv[]){
 	cudaCheckError();
 
 	printf("Starting GPU processing...\n");
-	// Redirect to contrast-enhancement.c
 	//Kernel invocations
+	int threadsPerBlock = 32;
+	dim3 threads(threadsPerBlock, threadsPerBlock);
+
+	int blocksPerGrid =  N/threads.x;
+	dim3 grid(blocksPerGrid, blocksPerGrid)
+
 	histogramGPU<<<grid, threads>>>(d_hist_out, d_img_in, h_img_in.h * h_img_in.w, 256);
 	cudaCheckError();
 
