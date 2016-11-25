@@ -31,10 +31,10 @@ int main(int argc, char *argv[]){
     int hist[256];
 
 	// Device Variables
-	int *d_hist_out,
-		*d_img_in;
-
-	unsigned char *d_output;
+	int *d_hist_out;
+	unsigned char
+		*d_img_in,
+		*d_output;
 
 
 	if (argc != 3) {
