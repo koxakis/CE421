@@ -12,7 +12,7 @@ LDFLAGS = -lm -I.
 
 
 %.o: %.c $(DEPS)
-	$(CC) $(CFLAGS) -c -o $@ $< $(LDFLAGS)
+	$(CC) -ipo $(CFLAGS) -c -o $@ $< $(LDFLAGS)
 
 main: main.c $(OBJ)
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
