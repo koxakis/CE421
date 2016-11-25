@@ -49,10 +49,6 @@ int main(int argc, char *argv[]){
 	printf("Allocating host memory...\n");
 	//Host memory allocation
 	h_img_out_buf.img = (unsigned char *)malloc(h_img_out_buf.w * h_img_out_buf.h * sizeof(unsigned char));
-	if ( h_img_out_buf == NULL){
-		fprintf(stderr, "Failed to allocate Host memory!\n");
-        exit(EXIT_FAILURE);
-	}
 
 	//Device memory allocation
 	printf("Allocating Device arrays...\n");
@@ -79,7 +75,7 @@ int main(int argc, char *argv[]){
 	dim3 threads(threadsPerBlock, threadsPerBlock);
 
 	int blocksPerGrid =  N/threads.x;
-	dim3 grid(blocksPerGrid, blocksPerGrid)
+	dim3 grid(blocksPerGrid, blocksPerGrid);
 
 	histogramGPU<<<grid, threads>>>(d_hist_out, d_img_in, h_img_in.h * h_img_in.w, 256);
 	cudaCheckError();
