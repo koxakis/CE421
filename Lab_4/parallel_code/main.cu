@@ -11,13 +11,11 @@
         }                                                                                        \
     }
 
-
-
-__global__ void histogramGPU ( int * d_hist_out, PGM_IMG d_img_in, int img_size, int nbr_bin) {
+__global__ void histogramGPU ( int * d_hist_out, unsigned char * d_img_in, int img_size, int nbr_bin) {
 	/* code */
 }
 
-__global__ void histogram_equalizationGPU ( PGM_IMG * d_img_out, PGM_IMG * d_img_in,
+__global__ void histogram_equalizationGPU ( unsigned char * d_img_out, unsigned char * d_img_in,
 											int * d_hist_in, int img_size, int nbr_bin) {
 	/* code */
 }
@@ -34,7 +32,7 @@ int main(int argc, char *argv[]){
 	int *d_hist_out;
 	unsigned char
 		*d_img_in,
-		*d_output;
+		*d_img_out;
 
 
 	if (argc != 3) {
@@ -57,16 +55,16 @@ int main(int argc, char *argv[]){
 	cudaCheckError();
 
 	d_img_in = NULL;
-	cudaMalloc((void **)&d_img_in, h_img_in.h * h_img_in.w * sizeof(int));
+	cudaMalloc((void **)&d_img_in, h_img_in.h * h_img_in.w * sizeof(unsigned char));
 	cudaCheckError();
 
-	d_output = NULL;
-	cudaMalloc((void **)&d_output, h_img_out_buf.w * h_img_out_buf.h * sizeof(unsigned char));
+	d_img_out = NULL;
+	cudaMalloc((void **)&d_img_out, h_img_out_buf.w * h_img_out_buf.h * sizeof(unsigned char));
 	cudaCheckError();
 
 	// Main Function call
 	// Data transfer to Device
-	cudaMemcpy(d_img_in, h_img_in, h_img_in.h * h_img_in.w * sizeof(int), cudaMemcpyHostToDevice);
+	cudaMemcpy(d_img_in, h_img_in.img, h_img_in.h * h_img_in.w * sizeof(unsigned char), cudaMemcpyHostToDevice);
 	cudaCheckError();
 
 	printf("Starting GPU processing...\n");
@@ -78,21 +76,25 @@ int main(int argc, char *argv[]){
 	int blocksPerGridy =  h_img_in.w/threads.y;
 	dim3 grid(blocksPerGridy, blocksPerGridx);
 
+	printf("CUDA kernel launch with %dx%d blocks of %dx%d threads\n", blocksPerGridy, blocksPerGridx, threadsPerBlock, threadsPerBlock);
 	histogramGPU<<<grid, threads>>>(d_hist_out, d_img_in, h_img_in.h * h_img_in.w, 256);
 	cudaCheckError();
 
 	cudaDeviceSynchronize();
 	cudaCheckError();
 
-	histogram_equalizationGPU<<<grid, threads>>>(d_output, d_img_in, d_hist_out, h_img_in.h * h_img_in.w, 256);
+	printf("CUDA kernel launch with %dx%d blocks of %dx%d threads\n", blocksPerGridy, blocksPerGridx, threadsPerBlock, threadsPerBlock);
+	histogram_equalizationGPU<<<grid, threads>>>(d_img_out, d_img_in, d_hist_out, h_img_in.h * h_img_in.w, 256);
 	cudaCheckError();
 
 	cudaDeviceSynchronize();
 	cudaCheckError();
 
 	//Return Stuff to h_img_out_buf
-	cudaMemcpy(h_img_out_buf, d_output, h_img_in.h * h_img_in.w * sizeof(unsigned char), cudaMemcpyDeviceToHost);
+	cudaMemcpy(h_img_out_buf.img, d_img_out, h_img_in.h * h_img_in.w * sizeof(unsigned char), cudaMemcpyDeviceToHost);
 	cudaCheckError();
+
+	cudaDeviceReset();
 	// I/O Stuff
     write_pgm(h_img_out_buf, argv[2]);
 	free_pgm(h_img_in);
