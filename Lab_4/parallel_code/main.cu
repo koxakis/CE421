@@ -81,16 +81,20 @@ int main(int argc, char *argv[]){
 	//Device memory allocation
 	printf("Allocating Device arrays...\n");
 
-	cudaMalloc(&d_img_in, h_img_in.w * h_img_in.h * sizeof(unsigned char) );
+	d_img_in = NULL;
+	cudaMalloc((void **)&d_img_in, h_img_in.w * h_img_in.h * sizeof(unsigned char) );
 	cudaCheckError();
 
-	cudaMalloc(&d_img_out, h_img_in.w * h_img_in.h * sizeof(unsigned char) );
+	d_img_out = NULL;
+	cudaMalloc((void **)&d_img_out, h_img_in.w * h_img_in.h * sizeof(unsigned char) );
 	cudaCheckError();
 
-	cudaMalloc(&d_hist_in, 256 * sizeof(int));
+	d_hist_in = NULL;
+	cudaMalloc((void **)&d_hist_in, 256 * sizeof(int));
 	cudaCheckError();
 
-	cudaMalloc(&d_lut, 256 * sizeof(int));
+	d_lut = NULL;
+	cudaMalloc((void **)&d_lut, 256 * sizeof(int));
 	cudaCheckError();
 
 	// Main Function call
@@ -158,16 +162,17 @@ int main(int argc, char *argv[]){
 	cudaDeviceReset();
 	// I/O Stuff
     write_pgm(h_img_out_buf, argv[2]);
+	
 	free_pgm(h_img_in);
     free_pgm(h_img_out_buf);
 
-	cudaFree(d_hist_in);
+	//cudaFree(&d_hist_in);
 	cudaCheckError();
 
-	cudaFree(d_img_in);
+	//cudaFree(d_img_in);
 	cudaCheckError();
-	
-	cudaFree(d_img_out);
+
+	//cudaFree(d_img_out);
 	cudaCheckError();
 
 	return 0;
