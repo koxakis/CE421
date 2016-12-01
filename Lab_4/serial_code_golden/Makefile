@@ -15,7 +15,7 @@ LDFLAGS = -lm -I.
 	$(CC) -ipo $(CFLAGS) -c -o $@ $< $(LDFLAGS)
 
 main: main.c $(OBJ)
-	$(CC) -O4 $(CFLAGS) -o $@ $^ $(LDFLAGS)
+	$(CC) -fast $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
 clean:
 	rm -f $(EXECUTABLES) $(OBJ)

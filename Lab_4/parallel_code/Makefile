@@ -4,7 +4,7 @@
 EXECUTABLES	= main
 
 CC = nvcc
-CFLAGS = -arch sm_30 -lineinfo -Xcompiler -g 
+CFLAGS = -arch sm_30 -lineinfo -Xcompiler -g -04
 
 DEPS = hist-equ.h
 OBJ = contrast-enhancement.o histogram-equalization.o

@@ -76,6 +76,7 @@ int main(int argc, char *argv[]){
 	//Host memory allocation
 	h_img_out_buf.img = (unsigned char *)malloc(h_img_out_buf.w * h_img_out_buf.h * sizeof(unsigned char));
 	h_hist_buffer = (int*)malloc(256 * sizeof(int));
+	h_lut = (int*)malloc(256 * sizeof(int));
 
 	//Device memory allocation
 	printf("Allocating Device arrays...\n");
