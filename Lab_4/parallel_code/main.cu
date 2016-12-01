@@ -11,56 +11,38 @@
         }                                                                                        \
     }
 
-__global__ void histogramGPU ( int * d_hist_out, int * d_hist_in, unsigned char * d_img_in, int img_size, int nbr_bin) {
+// Global kernel invocation stuff
+int threadsPerBlock ;
 
-	int row = blockIdx.y * blockDim.y + threadIdx.y;
-	int col = blockIdx.x * blockDim.x + threadIdx.x;
-
-	int i = col + (threadIdx.y * img_size) + (blockIdx.y * blockDim.y) * img_size;
-
-	d_hist_out[i] = 0 ;
-    //for ( i = 0; i < img_size; i ++){
-    d_hist_out[d_img_in[i]] ++;
-    //}
-}
+int blocksPerGridx ;
+int blocksPerGridy ;
 
 __global__ void histogram_equalizationGPU ( unsigned char * d_img_out, unsigned char * d_img_in,
-											int * d_hist_in, int img_size, int nbr_bin, int * d_lut) {
+											int * d_hist_in, int img_size, int nbr_bin, int * d_lut, int threads_number) {
 
-	//int *lut = (int *)malloc(sizeof(int)*nbr_bin);
-	//__shared__ int lut[nbr_bin];
-    int cdf, min, d;
-    /* Construct the LUT by calculating the CDF */
-    cdf = 0;
-    min = 0;
-	int row = blockIdx.y * blockDim.y + threadIdx.y;
-	int col = blockIdx.x * blockDim.x + threadIdx.x;
+	int thread_pos = blockIdx.x * blockDim.x + threadIdx.x;
 
-	int i = col + (threadIdx.y * img_size) + (blockIdx.y * blockDim.y) * img_size;
-    while(min == 0){
-        min = d_hist_in[i++];
-    }
-    d = img_size - min;
-    //for(int k = 0; k < nbr_bin; k ++){
-        cdf += d_hist_in[i];
-        d_lut[i] = (int)(((float)cdf - min)*255/d + 0.5);
-        if(d_lut[i] < 0){
-            d_lut[i] = 0;
-        }
+	int satrt, end;
+
+	if (thread_pos >= img_size ){
+		return;
+	}
+
+	satrt = (( img_size/threads_number) * thread_pos);
+	if (threads_number == 1) {
+		end = (img_size/threads_number);
+	}else{
+		end = ((img_size/threads_number) * (thread_pos + 1));
+	}
+	for (int i = 0; i < end	; i++) {
+		if (d_lut[d_img_in[i]] > 255) {
+			d_img_out[i] = 255;
+		}else{
+			d_img_out[i] = (unsigned char) d_lut[d_img_in[i]];
+		}
+	}
 
 
-    //}
-
-    /* Get the result image */
-    //for(int k = 0; k < img_size; k ++){
-        if(d_lut[d_img_in[i]] > 255){
-            d_img_out[i] = 255;
-        }
-        else{
-            d_img_out[i] = (unsigned char)d_lut[d_img_in[i]];
-        }
-
-    //}
 }
 
 
@@ -70,11 +52,12 @@ int main(int argc, char *argv[]){
     PGM_IMG h_img_in;
 	unsigned int timer = 0;
     PGM_IMG h_img_out_buf;
+	int cdf = 0, min = 0, d, i = 0;
 
-    int hist[256];
+	int * h_hist_buffer, *h_lut;
 
 	// Device Variables
-	int *d_hist_out, *d_lut, *d_hist_in;
+	int *d_lut, *d_hist_in;
 	unsigned char
 		*d_img_in,
 		*d_img_out;
@@ -89,61 +72,79 @@ int main(int argc, char *argv[]){
 	h_img_out_buf.w = h_img_in.w;
 	h_img_out_buf.h = h_img_in.h;
 
-	for (int i = 0; i < 256; i ++){
-        hist[i] = 0;
-    }
-
 	printf("Allocating host memory...\n");
 	//Host memory allocation
 	h_img_out_buf.img = (unsigned char *)malloc(h_img_out_buf.w * h_img_out_buf.h * sizeof(unsigned char));
+	h_hist_buffer = (int*)malloc(256 * sizeof(int));
 
 	//Device memory allocation
 	printf("Allocating Device arrays...\n");
-	d_hist_in = NULL;
-	cudaMalloc((void **)&d_hist_in, 256 * sizeof(int));
+
+	cudaMalloc(&d_img_in, h_img_in.w * h_img_in.h * sizeof(unsigned char) );
 	cudaCheckError();
 
-	d_lut = NULL;
-	cudaMalloc((void **)&d_lut, 256 * sizeof(int));
+	cudaMalloc(&d_img_out, h_img_in.w * h_img_in.h * sizeof(unsigned char) );
 	cudaCheckError();
 
-	d_hist_out = NULL;
-	cudaMalloc((void **)&d_hist_out, 256 * sizeof(int));
+	cudaMalloc(&d_hist_in, 256 * sizeof(int));
 	cudaCheckError();
 
-	d_img_in = NULL;
-	cudaMalloc((void **)&d_img_in, h_img_in.h * h_img_in.w * sizeof(unsigned char));
-	cudaCheckError();
-
-	d_img_out = NULL;
-	cudaMalloc((void **)&d_img_out, h_img_out_buf.w * h_img_out_buf.h * sizeof(unsigned char));
+	cudaMalloc(&d_lut, 256 * sizeof(int));
 	cudaCheckError();
 
 	// Main Function call
 	// Data transfer to Device
-	cudaMemcpy(d_img_in, h_img_in.img, h_img_in.h * h_img_in.w * sizeof(unsigned char), cudaMemcpyHostToDevice);
+
+	//cudaMemcpy(&d_img_out, h_img_out_buf.img, h_img_in.w * h_img_in.h * sizeof(unsigned char), cudaMemcpyHostToDevice );
+	//cudaCheckError();
+
+	cudaMemcpy(d_img_in, h_img_in.img, h_img_in.w * h_img_in.h * sizeof(unsigned char), cudaMemcpyHostToDevice);
 	cudaCheckError();
 
-	cudaMemcpy(d_hist_in, hist, 256 * sizeof(int), cudaMemcpyHostToDevice);
+	printf("Starting CPU processing...\n");
+
+	for (int i = 0; i < 256; i++) {
+		h_hist_buffer[i] = 0;
+	}
+
+	for (int i = 0; i < h_img_in.w * h_img_in.h; i++) {
+		h_hist_buffer[h_img_in.img[i]] ++;
+	}
+
+	while (min == 0) {
+		min = h_hist_buffer[i++];
+	}
+	d = (h_img_in.w * h_img_in.h) - min;
+	for (int i = 0; i < 256; i++) {
+		cdf += h_hist_buffer[i];
+		h_lut[i] = (int)(((float)cdf - min)*255/d + 0.5);
+		if (h_lut[i] < 0) {
+			h_lut[i];
+		}
+
+	}
+	// Data transfer to Device
+	cudaMemcpy(d_hist_in, h_hist_buffer, 256 * sizeof(int), cudaMemcpyHostToDevice);
+	cudaCheckError();
+
+	cudaMemcpy(d_lut, h_lut, 256 * sizeof(int), cudaMemcpyHostToDevice);
+	cudaCheckError();
 
 	printf("Starting GPU processing...\n");
 	//Kernel invocations
-	int threadsPerBlock = 32;
+
+	threadsPerBlock = 32;
 	dim3 threads(threadsPerBlock, threadsPerBlock);
 
-	int blocksPerGridx =  h_img_in.h/threads.x;
-	int blocksPerGridy =  h_img_in.w/threads.y;
+	blocksPerGridx =  h_img_in.h/threads.x;
+	blocksPerGridy =  h_img_in.w/threads.y;
+
 	dim3 grid(blocksPerGridy, blocksPerGridx);
 
 	printf("CUDA kernel launch with %dx%d blocks of %dx%d threads\n", blocksPerGridy, blocksPerGridx, threadsPerBlock, threadsPerBlock);
-	histogramGPU<<<1, 16>>>(d_hist_out, d_img_in, h_img_in.h * h_img_in.w, 256);
-	cudaCheckError();
-
-	cudaDeviceSynchronize();
-	cudaCheckError();
-
-	printf("CUDA kernel launch with %dx%d blocks of %dx%d threads\n", blocksPerGridy, blocksPerGridx, threadsPerBlock, threadsPerBlock);
-	histogram_equalizationGPU<<<grid, threads>>>(d_img_out, d_img_in, d_hist_out, h_img_in.h * h_img_in.w, 256, d_lut);
+	histogram_equalizationGPU<<<grid, threads>>>(d_img_out, d_img_in, d_hist_in,
+		 											h_img_in.h * h_img_in.w, 256, d_lut,
+													(threads.x * threads.y)* (blocksPerGridx * blocksPerGridy));
 	cudaCheckError();
 
 	cudaDeviceSynchronize();
@@ -159,7 +160,7 @@ int main(int argc, char *argv[]){
 	free_pgm(h_img_in);
     free_pgm(h_img_out_buf);
 
-	cudaFree(d_hist_out);
+	cudaFree(d_hist_in);
 	cudaFree(d_img_in);
 	cudaFree(d_img_out);
 	cudaCheckError();

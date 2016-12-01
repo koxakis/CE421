@@ -4,7 +4,7 @@
 EXECUTABLES	= main
 
 CC = icc
-CFLAGS = -Wall -g -std=c99
+CFLAGS = -Wall -g -O4 -std=c99
 
 DEPS = hist-equ.h
 OBJ = contrast-enhancement.o histogram-equalization.o
