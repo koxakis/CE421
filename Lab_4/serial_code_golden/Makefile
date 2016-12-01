@@ -4,7 +4,7 @@
 EXECUTABLES	= main
 
 CC = icc
-CFLAGS = -Wall -g -O4 -std=c99
+CFLAGS = -Wall -g -std=c99
 
 DEPS = hist-equ.h
 OBJ = contrast-enhancement.o histogram-equalization.o
@@ -15,7 +15,7 @@ LDFLAGS = -lm -I.
 	$(CC) -ipo $(CFLAGS) -c -o $@ $< $(LDFLAGS)
 
 main: main.c $(OBJ)
-	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
+	$(CC) -O4 $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
 clean:
 	rm -f $(EXECUTABLES) $(OBJ)
