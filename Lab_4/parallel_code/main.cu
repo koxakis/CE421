@@ -162,7 +162,11 @@ int main(int argc, char *argv[]){
     free_pgm(h_img_out_buf);
 
 	cudaFree(d_hist_in);
+	cudaCheckError();
+
 	cudaFree(d_img_in);
+	cudaCheckError();
+	
 	cudaFree(d_img_out);
 	cudaCheckError();
 
