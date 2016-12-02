@@ -11,7 +11,7 @@ OBJ = contrast-enhancement.o histogram-equalization.o
 LDFLAGS = -lm -I.
 
 
-main: main.cu $(OBJ)
+main: main.cu 
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
 clean:
