@@ -11,12 +11,6 @@
         }                                                                                        \
     }
 
-// Global kernel invocation stuff
-int threadsPerBlock ;
-
-int blocksPerGridx ;
-int blocksPerGridy ;
-
 __global__ void histogram_equalizationGPU ( unsigned char * d_img_out, unsigned char * d_img_in,
 											int * d_hist_in, int img_size, int nbr_bin, int * d_lut, int threads_number) {
 
@@ -123,16 +117,8 @@ int main(int argc, char *argv[]){
 	printf("Starting GPU processing...\n");
 	//Kernel invocations
 
-	threadsPerBlock = 32;
-	dim3 threads(threadsPerBlock, threadsPerBlock);
-
-	blocksPerGridx =  h_img_in.w/threads.y;
-	blocksPerGridy = h_img_in.h/threads.x;
-
 	int blocksPerGrid = ((h_img_in.w * h_img_in.h)/1024);
 	int threads_number = 1024;
-
-	dim3 grid(blocksPerGridx, blocksPerGridy);
 
 	//printf("CUDA kernel launch with %d blocks of %d threads\n", blocksPerGrid, threads_number);
 	printf("CUDA kernel launch with %d blocks of %d threads\n", blocksPerGrid, threads_number);
