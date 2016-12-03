@@ -12,20 +12,13 @@
     }
 
 __global__ void histogram_equalizationGPU ( unsigned char * d_img_out, unsigned char * d_img_in,
-											int * d_hist_in, int img_size, int nbr_bin, int * d_lut, int threads_number) {
+											int img_size, int nbr_bin, int * d_lut, int threads_number) {
 
 	int thread_pos = blockIdx.x * blockDim.x + threadIdx.x;
-	int i , start, end;
-
-	start = ((img_size / threads_number) * thread_pos);
-	end = ((img_size/threads_number) * (thread_pos + 1));
-
-	for ( i = start; i < end; i++) {
-		if (d_lut[d_img_in[i]] > 255) {
-			d_img_out[i] = 255;
-		}else {
-			d_img_out[i] = (unsigned char)d_lut[d_img_in[i]];
-		}
+	if (d_lut[d_img_in[thread_pos]] > (nbr_bin - 1)) {
+		d_img_out[thread_pos] = (nbr_bin - 1);
+	}else {
+		d_img_out[thread_pos] = (unsigned char)d_lut[d_img_in[thread_pos]];
 	}
 
 }
@@ -93,7 +86,7 @@ int main(int argc, char *argv[]){
 	for (int i = 0; i < h_img_in.w * h_img_in.h; i++) {
 		h_hist_buffer[h_img_in.img[i]] ++;
 	}
-
+	// Can be further GPUed 
 	while (min == 0) {
 		min = h_hist_buffer[i++];
 	}
@@ -122,7 +115,7 @@ int main(int argc, char *argv[]){
 
 	//printf("CUDA kernel launch with %d blocks of %d threads\n", blocksPerGrid, threads_number);
 	printf("CUDA kernel launch with %d blocks of %d threads\n", blocksPerGrid, threads_number);
-	histogram_equalizationGPU<<<blocksPerGrid, threads_number>>>(d_img_out, d_img_in, d_hist_in,
+	histogram_equalizationGPU<<<blocksPerGrid, threads_number>>>(d_img_out, d_img_in ,
 		 											h_img_in.h * h_img_in.w, 256, d_lut,
 													(threads_number)* (blocksPerGrid));
 	cudaCheckError();
