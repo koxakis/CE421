@@ -135,7 +135,7 @@ int main(int argc, char *argv[]){
 	dim3 grid(blocksPerGridx, blocksPerGridy);
 
 	//printf("CUDA kernel launch with %d blocks of %d threads\n", blocksPerGrid, threads_number);
-	printf("CUDA kernel launch with %dx%d blocks of %dx%d threads\n", blocksPerGridy, blocksPerGridx, threadsPerBlock, threadsPerBlock);
+	printf("CUDA kernel launch with %d blocks of %d threads\n", blocksPerGrid, threads_number);
 	histogram_equalizationGPU<<<blocksPerGrid, threads_number>>>(d_img_out, d_img_in, d_hist_in,
 		 											h_img_in.h * h_img_in.w, 256, d_lut,
 													(threads_number)* (blocksPerGrid));
