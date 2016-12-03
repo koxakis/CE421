@@ -21,26 +21,18 @@ __global__ void histogram_equalizationGPU ( unsigned char * d_img_out, unsigned 
 											int * d_hist_in, int img_size, int nbr_bin, int * d_lut, int threads_number) {
 
 	int thread_pos = blockIdx.x * blockDim.x + threadIdx.x;
-	int i = 0, start, end;
+	int i , start, end;
 
-	if (thread_pos >= img_size){
-		return;
-	}
+	//start = ((img_size / threads_number) * thread_pos);
+	//end = ((img_size/threads_number) * (thread_pos + 1));
 
-	start = ((img_size / threads_number) * thread_pos);
-
-	if (threads_number == 1){
-		end = (img_size/threads_number);
-	}else{
-		end = ((img_size/threads_number) * (thread_pos + 1));
-	}
-	for ( i = start; i < end; i++) {
-		if (d_lut[d_img_in[i]] > 255) {
-			d_img_out[i] = 255;
+	//for ( i = start; i < end; i++) {
+		if (d_lut[d_img_in[thread_pos]] > 255) {
+			d_img_out[thread_pos] = 255;
 		}else {
-			d_img_out[i] = (unsigned char)d_lut[d_img_in[i]];
+			d_img_out[thread_pos] = (unsigned char)d_lut[d_img_in[thread_pos]];
 		}
-	}
+	//}
 
 }
 
@@ -95,9 +87,6 @@ int main(int argc, char *argv[]){
 	// Main Function call
 	// Data transfer to Device
 
-	//cudaMemcpy(&d_img_out, h_img_out_buf.img, h_img_in.w * h_img_in.h * sizeof(unsigned char), cudaMemcpyHostToDevice );
-	//cudaCheckError();
-
 	cudaMemcpy(d_img_in, h_img_in.img, h_img_in.w * h_img_in.h * sizeof(unsigned char), cudaMemcpyHostToDevice);
 	cudaCheckError();
 
@@ -123,16 +112,7 @@ int main(int argc, char *argv[]){
 		}
 
 	}
-/*
-	for(i = 0; i < h_img_in.w * h_img_in.h; i ++){
-        if(h_lut[h_img_in.img[i]] > 255){
-            h_img_out_buf.img[i] = 255;
-        }
-        else{
-            h_img_out_buf.img[i] = (unsigned char)h_lut[h_img_in.img[i]];
-        }
 
-    }*/
 	// Data transfer to Device
 	cudaMemcpy(d_hist_in, h_hist_buffer, 256 * sizeof(int), cudaMemcpyHostToDevice);
 	cudaCheckError();
@@ -146,13 +126,15 @@ int main(int argc, char *argv[]){
 	threadsPerBlock = 32;
 	dim3 threads(threadsPerBlock, threadsPerBlock);
 
-	blocksPerGridx =  (h_img_in.h/threads.x)/3;
-	blocksPerGridy =  (h_img_in.w/threads.y)/3;
+	blocksPerGridx =  h_img_in.w/threads.y;
+	blocksPerGridy = h_img_in.h/threads.x;
 
-	int blocksPerGrid = ((h_img_in.w * h_img_in.h)/1024)/3;
+	int blocksPerGrid = ((h_img_in.w * h_img_in.h)/1024);
+	//int threads_number = 1024;
 
-	dim3 grid(blocksPerGrid);
+	dim3 grid(blocksPerGridx, blocksPerGridy);
 
+	//printf("CUDA kernel launch with %d blocks of %d threads\n", blocksPerGrid, threads_number);
 	printf("CUDA kernel launch with %dx%d blocks of %dx%d threads\n", blocksPerGridy, blocksPerGridx, threadsPerBlock, threadsPerBlock);
 	histogram_equalizationGPU<<<blocksPerGrid, threads>>>(d_img_out, d_img_in, d_hist_in,
 		 											h_img_in.h * h_img_in.w, 256, d_lut,
