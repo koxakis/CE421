@@ -23,16 +23,16 @@ __global__ void histogram_equalizationGPU ( unsigned char * d_img_out, unsigned 
 	int thread_pos = blockIdx.x * blockDim.x + threadIdx.x;
 	int i , start, end;
 
-	//start = ((img_size / threads_number) * thread_pos);
-	//end = ((img_size/threads_number) * (thread_pos + 1));
+	start = ((img_size / threads_number) * thread_pos);
+	end = ((img_size/threads_number) * (thread_pos + 1));
 
-	//for ( i = start; i < end; i++) {
-		if (d_lut[d_img_in[thread_pos]] > 255) {
-			d_img_out[thread_pos] = 255;
+	for ( i = start; i < end; i++) {
+		if (d_lut[d_img_in[i]] > 255) {
+			d_img_out[i] = 255;
 		}else {
-			d_img_out[thread_pos] = (unsigned char)d_lut[d_img_in[thread_pos]];
+			d_img_out[i] = (unsigned char)d_lut[d_img_in[i]];
 		}
-	//}
+	}
 
 }
 
@@ -130,15 +130,15 @@ int main(int argc, char *argv[]){
 	blocksPerGridy = h_img_in.h/threads.x;
 
 	int blocksPerGrid = ((h_img_in.w * h_img_in.h)/1024);
-	//int threads_number = 1024;
+	int threads_number = 1024;
 
 	dim3 grid(blocksPerGridx, blocksPerGridy);
 
 	//printf("CUDA kernel launch with %d blocks of %d threads\n", blocksPerGrid, threads_number);
 	printf("CUDA kernel launch with %dx%d blocks of %dx%d threads\n", blocksPerGridy, blocksPerGridx, threadsPerBlock, threadsPerBlock);
-	histogram_equalizationGPU<<<blocksPerGrid, threads>>>(d_img_out, d_img_in, d_hist_in,
+	histogram_equalizationGPU<<<blocksPerGrid, threads_number>>>(d_img_out, d_img_in, d_hist_in,
 		 											h_img_in.h * h_img_in.w, 256, d_lut,
-													(threads.x * threads.y)* (blocksPerGridx * blocksPerGridy));
+													(threads_number)* (blocksPerGrid));
 	cudaCheckError();
 
 	cudaDeviceSynchronize();
