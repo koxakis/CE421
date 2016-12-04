@@ -66,19 +66,31 @@ int main(int argc, char *argv[]){
 	printf("Allocating Device arrays...\n");
 
 	d_img_in = NULL;
+	timer.Start();
 	cudaMalloc((void **)&d_img_in, h_img_in.w * h_img_in.h * sizeof(unsigned char) );
+	timer.Stop();
+	overal_data_allocation_time += timer.Elapsed();
 	cudaCheckError();
 
 	d_img_out = NULL;
+	timer.Start();
 	cudaMalloc((void **)&d_img_out, h_img_in.w * h_img_in.h * sizeof(unsigned char) );
+	timer.Stop();
+	overal_data_allocation_time += timer.Elapsed();
 	cudaCheckError();
 
 	d_hist_in = NULL;
+	timer.Start();
 	cudaMalloc((void **)&d_hist_in, 256 * sizeof(int));
+	timer.Stop();
+	overal_data_allocation_time += timer.Elapsed();
 	cudaCheckError();
 
 	d_lut = NULL;
+	timer.Start();
 	cudaMalloc((void **)&d_lut, 256 * sizeof(int));
+	timer.Stop();
+	overal_data_allocation_time += timer.Elapsed();
 	cudaCheckError();
 
 
