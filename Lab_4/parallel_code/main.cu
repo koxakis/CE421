@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include "hist-equ.h"
+#include "gputimer.h"
 
 #define cudaCheckError() {                                                                       \
         cudaError_t e=cudaGetLastError();                                                        \
@@ -10,7 +11,7 @@
             exit(EXIT_FAILURE);                                                                  \
         }                                                                                        \
     }
-
+//Posible cdf culc
 __global__ void histogram_equalizationGPU ( unsigned char * d_img_out, unsigned char * d_img_in,
 											int img_size, int nbr_bin, int * d_lut, int threads_number) {
 
@@ -29,6 +30,9 @@ int main(int argc, char *argv[]){
 	int cdf = 0, min = 0, d, i = 0;
 
 	int * h_hist_buffer, * h_lut;
+
+	GpuTimer timer;
+	double overal_GPU_time = 0, overal_data_transfer_time = 0, overal_data_allocation_time = 0;
 
 	// Device Variables
 	int *d_lut, *d_hist_in;
@@ -71,11 +75,8 @@ int main(int argc, char *argv[]){
 	cudaMalloc((void **)&d_lut, 256 * sizeof(int));
 	cudaCheckError();
 
-	// Main Function call
-	// Data transfer to Device
 
-	cudaMemcpy(d_img_in, h_img_in.img, h_img_in.w * h_img_in.h * sizeof(unsigned char), cudaMemcpyHostToDevice);
-	cudaCheckError();
+	// Main Function call
 
 	printf("Starting CPU processing...\n");
 
@@ -86,7 +87,7 @@ int main(int argc, char *argv[]){
 	for (int i = 0; i < h_img_in.w * h_img_in.h; i++) {
 		h_hist_buffer[h_img_in.img[i]] ++;
 	}
-	// Can be further GPUed 
+	// Can be further GPUed
 	while (min == 0) {
 		min = h_hist_buffer[i++];
 	}
@@ -101,10 +102,22 @@ int main(int argc, char *argv[]){
 	}
 
 	// Data transfer to Device
-	cudaMemcpy(d_hist_in, h_hist_buffer, 256 * sizeof(int), cudaMemcpyHostToDevice);
+	timer.start();
+	cudaMemcpy(d_img_in, h_img_in.img, h_img_in.w * h_img_in.h * sizeof(unsigned char), cudaMemcpyHostToDevice);
+	timer.stop();
+	overal_data_transfer_time += timer.Elapsed();
 	cudaCheckError();
 
+	timer.start();
+	cudaMemcpy(d_hist_in, h_hist_buffer, 256 * sizeof(int), cudaMemcpyHostToDevice);
+	timer.stop();
+	overal_data_transfer_time += timer.Elapsed();
+	cudaCheckError();
+
+	timer.start();
 	cudaMemcpy(d_lut, h_lut, 256 * sizeof(int), cudaMemcpyHostToDevice);
+	timer.stop();
+	overal_data_transfer_time += timer.Elapsed();
 	cudaCheckError();
 
 	printf("Starting GPU processing...\n");
@@ -124,7 +137,10 @@ int main(int argc, char *argv[]){
 	cudaCheckError();
 
 	//Return Stuff to h_img_out_buf
+	timer.start();
 	cudaMemcpy(h_img_out_buf.img, d_img_out, h_img_in.h * h_img_in.w * sizeof(unsigned char), cudaMemcpyDeviceToHost);
+	timer.stop();
+	overal_data_transfer_time += timer.Elapsed();
 	cudaCheckError();
 
 	cudaDeviceReset();

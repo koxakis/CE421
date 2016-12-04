@@ -2,12 +2,17 @@
 #include <string.h>
 #include <stdlib.h>
 #include "hist-equ.h"
+#include <time.h>
 
 void run_cpu_gray_test(PGM_IMG img_in, char *out_filename);
 
 int main(int argc, char *argv[]){
     PGM_IMG img_ibuf_g;
 
+	double overal_time = 0;
+	clock_t start, end;
+
+	start = clock();
 	if (argc != 3) {
 		printf("Run with input file name and output file name as arguments\n");
 		exit(1);
@@ -18,6 +23,9 @@ int main(int argc, char *argv[]){
     run_cpu_gray_test(img_ibuf_g, argv[2]);
     free_pgm(img_ibuf_g);
 
+	end = clock();
+	overal_time = (double)(end - start) * 1000.0 / CLOCKS_PER_SEC ;
+	printf("Overal program time %g \n", overal_time);
 	return 0;
 }
 
@@ -27,12 +35,19 @@ void run_cpu_gray_test(PGM_IMG img_in, char *out_filename)
 {
     unsigned int timer = 0;
     PGM_IMG img_obuf;
-
+	double overal_time = 0;
+	clock_t start, end;
 
     printf("Starting CPU processing...\n");
     img_obuf = contrast_enhancement_g(img_in);
+
+	start = clock();
     write_pgm(img_obuf, out_filename);
     free_pgm(img_obuf);
+	end = clock();
+	overal_time = (double)(end - start) * 1000.0 / CLOCKS_PER_SEC ;
+
+	printf("Overal I/O time %g\n", overal_time);
 }
 
 
