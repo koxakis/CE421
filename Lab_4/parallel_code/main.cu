@@ -27,7 +27,7 @@ __global__ void histogram_equalizationGPU ( unsigned char * d_img_out, unsigned 
 
 int main(int argc, char *argv[]){
 	// Host Variables
-	clock_t start, end;
+	clock_t start, end, start2, end2;
 
 	start = clock();
     PGM_IMG h_img_in, h_img_out_buf;
@@ -86,6 +86,7 @@ int main(int argc, char *argv[]){
 
 	printf("Starting CPU processing...\n");
 
+	start2 = clock();
 	for (int i = 0; i < 256; i++) {
 		h_hist_buffer[i] = 0;
 	}
@@ -106,7 +107,7 @@ int main(int argc, char *argv[]){
 		}
 
 	}
-
+	end2 = clock();
 	// Data transfer to Device
 	timer.Start();
 	cudaMemcpy(d_img_in, h_img_in.img, h_img_in.w * h_img_in.h * sizeof(unsigned char), cudaMemcpyHostToDevice);
@@ -186,6 +187,10 @@ int main(int argc, char *argv[]){
 
 	end = clock();
 	overal_time = (double)(end - start) * 1000.0 / CLOCKS_PER_SEC ;
+	overal_CPU_time = (double)(end2 - start2) * 1000.0 / CLOCKS_PER_SEC ;
+
+	printf("Overal program time %g \n", overal_CPU_time);
+
 	printf("Overal program time %g \n", overal_time);
 
 
