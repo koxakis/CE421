@@ -153,7 +153,6 @@ int main(int argc, char *argv[]){
 	overal_data_transfer_time += timer.Elapsed();
 	cudaCheckError();
 
-	cudaDeviceReset();
 	// I/O Stuff
     write_pgm(h_img_out_buf, argv[2]);
 	free_pgm(h_img_in);
@@ -189,7 +188,7 @@ int main(int argc, char *argv[]){
 	overal_time = (double)(end - start) * 1000.0 / CLOCKS_PER_SEC ;
 	overal_CPU_time = (double)(end2 - start2) * 1000.0 / CLOCKS_PER_SEC ;
 
-	printf("Overal program time %g \n", overal_CPU_time);
+	printf("Overal program time on cpu %g \n", overal_CPU_time);
 
 	printf("Overal program time %g \n", overal_time);
 
