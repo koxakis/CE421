@@ -13,6 +13,18 @@
         }                                                                                        \
     }
 //Posible cdf culc
+__global__ void cdf_culcGPU(int min, int d, int * d_lut, int * d_hist_in) {
+	int cdf = 0;
+	int thread_pos = blockIdx.x * blockDim.x + threadIdx.x;
+	//for (int i = 0; i < 256; i++) {
+		cdf += d_hist_in[thread_pos];
+		d_lut[thread_pos] = (int)(((float)cdf - min)*255/d + 0.5);
+		if (d_lut[thread_pos] < 0) {
+			d_lut[thread_pos] = 0;
+		}
+
+	//}
+}
 __global__ void histogram_equalizationGPU ( unsigned char * d_img_out, unsigned char * d_img_in,
 											int img_size, int nbr_bin, int * d_lut, int threads_number) {
 
@@ -111,15 +123,9 @@ int main(int argc, char *argv[]){
 		min = h_hist_buffer[i++];
 	}
 	d = (h_img_in.w * h_img_in.h) - min;
-	for (int i = 0; i < 256; i++) {
-		cdf += h_hist_buffer[i];
-		h_lut[i] = (int)(((float)cdf - min)*255/d + 0.5);
-		if (h_lut[i] < 0) {
-			h_lut[i];
-		}
-
-	}
 	end2 = clock();
+
+	//Trensfer files
 	// Data transfer to Device
 	timer.Start();
 	cudaMemcpy(d_img_in, h_img_in.img, h_img_in.w * h_img_in.h * sizeof(unsigned char), cudaMemcpyHostToDevice);
@@ -132,12 +138,18 @@ int main(int argc, char *argv[]){
 	timer.Stop();
 	overal_data_transfer_time += timer.Elapsed();
 	cudaCheckError();
-
+/*
 	timer.Start();
 	cudaMemcpy(d_lut, h_lut, 256 * sizeof(int), cudaMemcpyHostToDevice);
 	timer.Stop();
 	overal_data_transfer_time += timer.Elapsed();
-	cudaCheckError();
+	cudaCheckError();*/
+
+	//Kernel invocations
+	timer.Start();
+	cdf_culcGPU<<<1, 256>>> (min, d, d_lut, d_hist_in);
+	timer.Stop();
+	overal_GPU_time += timer.Elapsed();
 
 	printf("Starting GPU processing...\n");
 	//Kernel invocations

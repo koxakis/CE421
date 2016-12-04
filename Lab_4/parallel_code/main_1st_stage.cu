@@ -115,7 +115,7 @@ int main(int argc, char *argv[]){
 		cdf += h_hist_buffer[i];
 		h_lut[i] = (int)(((float)cdf - min)*255/d + 0.5);
 		if (h_lut[i] < 0) {
-			h_lut[i];
+			h_lut[i] = 0;
 		}
 
 	}
