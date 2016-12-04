@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include "hist-equ.h"
 #include "gputimer.h"
+#include <time.h>
 
 #define cudaCheckError() {                                                                       \
         cudaError_t e=cudaGetLastError();                                                        \
@@ -26,10 +27,14 @@ __global__ void histogram_equalizationGPU ( unsigned char * d_img_out, unsigned 
 
 int main(int argc, char *argv[]){
 	// Host Variables
+	start = clock();
     PGM_IMG h_img_in, h_img_out_buf;
 	int cdf = 0, min = 0, d, i = 0;
 
 	int * h_hist_buffer, * h_lut;
+
+	clock_t start, end;
+	double overal_CPU_time, overal_time;
 
 	GpuTimer timer;
 	double overal_GPU_time = 0, overal_data_transfer_time = 0, overal_data_allocation_time = 0;
@@ -102,21 +107,21 @@ int main(int argc, char *argv[]){
 	}
 
 	// Data transfer to Device
-	timer.start();
+	timer.Start();
 	cudaMemcpy(d_img_in, h_img_in.img, h_img_in.w * h_img_in.h * sizeof(unsigned char), cudaMemcpyHostToDevice);
-	timer.stop();
+	timer.Stop();
 	overal_data_transfer_time += timer.Elapsed();
 	cudaCheckError();
 
-	timer.start();
+	timer.Start();
 	cudaMemcpy(d_hist_in, h_hist_buffer, 256 * sizeof(int), cudaMemcpyHostToDevice);
-	timer.stop();
+	timer.Stop();
 	overal_data_transfer_time += timer.Elapsed();
 	cudaCheckError();
 
-	timer.start();
+	timer.Start();
 	cudaMemcpy(d_lut, h_lut, 256 * sizeof(int), cudaMemcpyHostToDevice);
-	timer.stop();
+	timer.Stop();
 	overal_data_transfer_time += timer.Elapsed();
 	cudaCheckError();
 
@@ -128,18 +133,21 @@ int main(int argc, char *argv[]){
 
 	//printf("CUDA kernel launch with %d blocks of %d threads\n", blocksPerGrid, threads_number);
 	printf("CUDA kernel launch with %d blocks of %d threads\n", blocksPerGrid, threads_number);
+	timer.Start();
 	histogram_equalizationGPU<<<blocksPerGrid, threads_number>>>(d_img_out, d_img_in ,
 		 											h_img_in.h * h_img_in.w, 256, d_lut,
 													(threads_number)* (blocksPerGrid));
+	timer.Stop();
+	overal_GPU_time += timer.Elapsed();
 	cudaCheckError();
 
 	cudaDeviceSynchronize();
 	cudaCheckError();
 
 	//Return Stuff to h_img_out_buf
-	timer.start();
+	timer.Start();
 	cudaMemcpy(h_img_out_buf.img, d_img_out, h_img_in.h * h_img_in.w * sizeof(unsigned char), cudaMemcpyDeviceToHost);
-	timer.stop();
+	timer.Stop();
 	overal_data_transfer_time += timer.Elapsed();
 	cudaCheckError();
 
@@ -149,14 +157,36 @@ int main(int argc, char *argv[]){
 	free_pgm(h_img_in);
     free_pgm(h_img_out_buf);
 
+	timer.Start();
 	cudaFree(d_hist_in);
+	timer.Stop();
+	overal_data_allocation_time += timer.Elapsed();
 	cudaCheckError();
 
+	timer.Start();
 	cudaFree(d_img_in);
+	timer.Stop();
+	overal_data_allocation_time += timer.Elapsed();
 	cudaCheckError();
 
+	timer.Start();
 	cudaFree(d_img_out);
+	timer.Stop();
+	overal_data_allocation_time += timer.Elapsed();
 	cudaCheckError();
+
+	printf("\nTime elapsed on GPU( computation) = %g ms\n", overal_GPU_time);
+
+	printf("\nTime elapsed on GPU( memory transfers) = %g ms", overal_data_transfer_time);
+
+	printf("\nTime elapsed on GPU( memory transfers) = %g ms", overal_data_allocation_time);
+
+	printf("\nTime elapsed on GPU( overal) = %g ms\n", overal_GPU_time + overal_data_transfer_time + overal_data_allocation_time);
+
+	end = clock();
+	overal_time = (double)(end - start) * 1000.0 / CLOCKS_PER_SEC ;
+	printf("Overal program time %g \n", overal_time);
+
 
 	cudaDeviceReset();
 	return 0;
