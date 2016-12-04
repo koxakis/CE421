@@ -27,13 +27,14 @@ __global__ void histogram_equalizationGPU ( unsigned char * d_img_out, unsigned 
 
 int main(int argc, char *argv[]){
 	// Host Variables
+	clock_t start, end;
+
 	start = clock();
     PGM_IMG h_img_in, h_img_out_buf;
 	int cdf = 0, min = 0, d, i = 0;
 
 	int * h_hist_buffer, * h_lut;
 
-	clock_t start, end;
 	double overal_CPU_time, overal_time;
 
 	GpuTimer timer;
