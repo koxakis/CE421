@@ -140,12 +140,6 @@ int main(int argc, char *argv[]){
 	timer.Stop();
 	overal_data_transfer_time += timer.Elapsed();
 	cudaCheckError();
-/*
-	timer.Start();
-	cudaMemcpy(d_lut, h_lut, 256 * sizeof(int), cudaMemcpyHostToDevice);
-	timer.Stop();
-	overal_data_transfer_time += timer.Elapsed();
-	cudaCheckError();*/
 
 	//Kernel invocations
 	timer.Start();
