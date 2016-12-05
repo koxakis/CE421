@@ -4,6 +4,8 @@
 *.obj
 *.elf
 
+Lab_5/parallel-kmeans/Image_data/
+
 main
 images/
 Lab_4/serial_code_golden/images/
