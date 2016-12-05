@@ -36,7 +36,7 @@ int main(int argc, char *argv[]){
 
 	int * h_hist_buffer, * h_lut;
 
-	double overal_CPU_time, overal_time, overal_time_IO;
+	double overal_CPU_time, overal_time, overal_IO_time;
 
 	GpuTimer timer;
 	double overal_GPU_time = 0, overal_data_transfer_time = 0, overal_data_allocation_time = 0;
