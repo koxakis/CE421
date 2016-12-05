@@ -153,6 +153,8 @@ int main(int argc, char *argv[]){
 	int blocksPerGrid;
 	int threads_number;
 
+	printf("Starting GPU processing...\n");
+
 	// Kernel properties
 	cudaFuncSetCacheConfig(cdf_culcGPU, cudaFuncCachePreferL1);
 	cudaFuncSetCacheConfig(histogram_equalizationGPU, cudaFuncCachePreferL1);
@@ -167,11 +169,9 @@ int main(int argc, char *argv[]){
 	timer.Stop();
 	overal_GPU_time += timer.Elapsed();
 
-	printf("Starting GPU processing...\n");
 	//Kernel invocations
-
-	blocksPerGrid = ((h_img_in.w * h_img_in.h)/1024);
 	threads_number = 1024;
+	blocksPerGrid = ((h_img_in.w * h_img_in.h)/threads_number);
 
 	//printf("CUDA kernel launch with %d blocks of %d threads\n", blocksPerGrid, threads_number);
 	printf("CUDA kernel launch with %d blocks of %d threads\n", blocksPerGrid, threads_number);
