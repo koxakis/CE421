@@ -17,14 +17,20 @@ __global__ void cdf_culcGPU(int min, int d, int * d_lut, int * d_hist_in) {
 	int cdf = 0;
 	int thread_pos = threadIdx.x;
 
+	__shared__ int d_temp_hist_in[256];
+	__shared__ int d_temp_lut[256];
+
+	d_temp_hist_in[thread_pos] = d_hist_in[thread_pos];
+
 	for (int i = 0; i < thread_pos; i++) {
-		cdf += d_hist_in[i];
+		cdf += d_temp_hist_in[i];
 	}
-	__syncthreads();
-	d_lut[thread_pos] = (int)(((float)cdf - min)*255/d + 0.5);
-	if (d_lut[thread_pos] < 0) {
-		d_lut[thread_pos] = 0;
+	d_temp_lut[thread_pos] = (int)(((float)cdf - min)*255/d + 0.5);
+	if (d_temp_lut[thread_pos] < 0) {
+		d_temp_lut[thread_pos] = 0;
 	}
+
+	d_lut[thread_pos] = d_temp_lut[thread_pos];
 
 }
 __global__ void histogram_equalizationGPU ( unsigned char * d_img_out, unsigned char * d_img_in,
@@ -41,15 +47,16 @@ __global__ void histogram_equalizationGPU ( unsigned char * d_img_out, unsigned 
 
 int main(int argc, char *argv[]){
 	// Host Variables
-	clock_t start, end, start2, end2;
+	clock_t start, start2, start_io, start_io2;
+	clock_t end, end2, end_io, end_io2;
 
 	start = clock();
     PGM_IMG h_img_in, h_img_out_buf;
-	int cdf = 0, min = 0, d, i = 0;
+	int min = 0, d, i = 0;
 
-	int * h_hist_buffer, * h_lut;
+	int * h_hist_buffer;
 
-	double overal_CPU_time, overal_time;
+	double overal_CPU_time, overal_time, overal_IO_time;
 
 	GpuTimer timer;
 	double overal_GPU_time = 0, overal_data_transfer_time = 0, overal_data_allocation_time = 0;
@@ -65,7 +72,9 @@ int main(int argc, char *argv[]){
 		printf("Run with input file name and output file name as arguments\n");
 		exit(1);
 	}
+	start_io = clock();
     h_img_in = read_pgm(argv[1]);
+	end_io = clock();
 
 	h_img_out_buf.w = h_img_in.w;
 	h_img_out_buf.h = h_img_in.h;
@@ -74,7 +83,6 @@ int main(int argc, char *argv[]){
 	//Host memory allocation
 	h_img_out_buf.img = (unsigned char *)malloc(h_img_out_buf.w * h_img_out_buf.h * sizeof(unsigned char));
 	h_hist_buffer = (int*)malloc(256 * sizeof(int));
-	h_lut = (int*)malloc(256 * sizeof(int));
 
 	//Device memory allocation
 	printf("Allocating Device arrays...\n");
@@ -142,16 +150,28 @@ int main(int argc, char *argv[]){
 	cudaCheckError();
 
 	//Kernel invocations
+	int blocksPerGrid;
+	int threads_number;
+
+	// Kernel properties
+	cudaFuncSetCacheConfig(cdf_culcGPU, cudaFuncCachePreferL1);
+	cudaFuncSetCacheConfig(histogram_equalizationGPU, cudaFuncCachePreferL1);
+
+	blocksPerGrid = 1;
+	threads_number = 256;
+
+	printf("CUDA kernel launch with %d blocks of %d threads\n", blocksPerGrid, threads_number);
 	timer.Start();
-	cdf_culcGPU<<<1, 256>>> (min, d, d_lut, d_hist_in);
+	cdf_culcGPU<<<blocksPerGrid, threads_number>>> (min, d, d_lut, d_hist_in);
+	//cudaDeviceSynchronize();
 	timer.Stop();
 	overal_GPU_time += timer.Elapsed();
 
 	printf("Starting GPU processing...\n");
 	//Kernel invocations
 
-	int blocksPerGrid = ((h_img_in.w * h_img_in.h)/1024);
-	int threads_number = 1024;
+	blocksPerGrid = ((h_img_in.w * h_img_in.h)/1024);
+	threads_number = 1024;
 
 	//printf("CUDA kernel launch with %d blocks of %d threads\n", blocksPerGrid, threads_number);
 	printf("CUDA kernel launch with %d blocks of %d threads\n", blocksPerGrid, threads_number);
@@ -159,11 +179,9 @@ int main(int argc, char *argv[]){
 	histogram_equalizationGPU<<<blocksPerGrid, threads_number>>>(d_img_out, d_img_in ,
 		 											h_img_in.h * h_img_in.w, 256, d_lut,
 													(threads_number)* (blocksPerGrid));
+	cudaDeviceSynchronize();
 	timer.Stop();
 	overal_GPU_time += timer.Elapsed();
-	cudaCheckError();
-
-	cudaDeviceSynchronize();
 	cudaCheckError();
 
 	//Return Stuff to h_img_out_buf
@@ -174,9 +192,11 @@ int main(int argc, char *argv[]){
 	cudaCheckError();
 
 	// I/O Stuff
+	start_io2 = clock();
     write_pgm(h_img_out_buf, argv[2]);
 	free_pgm(h_img_in);
     free_pgm(h_img_out_buf);
+	end_io2 = clock();
 
 	timer.Start();
 	cudaFree(d_hist_in);
@@ -200,15 +220,17 @@ int main(int argc, char *argv[]){
 
 	printf("\nTime elapsed on GPU( memory transfers) = %g ms", overal_data_transfer_time);
 
-	printf("\nTime elapsed on GPU( memory transfers) = %g ms", overal_data_allocation_time);
+	printf("\nTime elapsed on GPU( memory allocation) = %g ms", overal_data_allocation_time);
 
 	printf("\nTime elapsed on GPU( overal) = %g ms\n", overal_GPU_time + overal_data_transfer_time + overal_data_allocation_time);
 
 	end = clock();
 	overal_time = (double)(end - start) * 1000.0 / CLOCKS_PER_SEC ;
 	overal_CPU_time = (double)(end2 - start2) * 1000.0 / CLOCKS_PER_SEC ;
+	overal_IO_time = ((double)(end_io - start_io) * 1000.0 / CLOCKS_PER_SEC) + ((double)(end_io2 - start_io2) * 1000.0 / CLOCKS_PER_SEC);
 
 	printf("Overal program time on cpu %g \n", overal_CPU_time);
+	printf("Overal time on IO %g\n", overal_IO_time);
 
 	printf("Overal program time %g \n", overal_time);
 

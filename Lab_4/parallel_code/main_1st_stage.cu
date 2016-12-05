@@ -151,11 +151,10 @@ int main(int argc, char *argv[]){
 	histogram_equalizationGPU<<<blocksPerGrid, threads_number>>>(d_img_out, d_img_in ,
 		 											h_img_in.h * h_img_in.w, 256, d_lut,
 													(threads_number)* (blocksPerGrid));
-	timer.Stop();
-	overal_GPU_time += timer.Elapsed();
-	cudaCheckError();
 
 	cudaDeviceSynchronize();
+	timer.Stop();
+	overal_GPU_time += timer.Elapsed();
 	cudaCheckError();
 
 	//Return Stuff to h_img_out_buf
@@ -192,7 +191,7 @@ int main(int argc, char *argv[]){
 
 	printf("\nTime elapsed on GPU( memory transfers) = %g ms", overal_data_transfer_time);
 
-	printf("\nTime elapsed on GPU( memory transfers) = %g ms", overal_data_allocation_time);
+	printf("\nTime elapsed on GPU( memory allocation) = %g ms", overal_data_allocation_time);
 
 	printf("\nTime elapsed on GPU( overal) = %g ms\n", overal_GPU_time + overal_data_transfer_time + overal_data_allocation_time);
 

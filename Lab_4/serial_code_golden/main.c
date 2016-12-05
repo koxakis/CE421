@@ -7,12 +7,13 @@
 void run_cpu_gray_test(PGM_IMG img_in, char *out_filename);
 
 int main(int argc, char *argv[]){
+	start = clock();
     PGM_IMG img_ibuf_g;
 
 	double overal_time = 0;
 	clock_t start, end;
 
-	start = clock();
+
 	if (argc != 3) {
 		printf("Run with input file name and output file name as arguments\n");
 		exit(1);
