@@ -5,13 +5,16 @@
 #include <time.h>
 
 void run_cpu_gray_test(PGM_IMG img_in, char *out_filename);
+double overal_time_IO = 0;
 
 int main(int argc, char *argv[]){
+	clock_t start, end;
+	clock_t start_IO, end_IO;
 	start = clock();
     PGM_IMG img_ibuf_g;
 
 	double overal_time = 0;
-	clock_t start, end;
+
 
 
 	if (argc != 3) {
@@ -20,13 +23,19 @@ int main(int argc, char *argv[]){
 	}
 
     printf("Running contrast enhancement for gray-scale images.\n");
+
+	start_IO = clock();
     img_ibuf_g = read_pgm(argv[1]);
+	end_IO = clock();
+	overal_time_IO += (double)(end_IO - start_IO) * 1000.0 / CLOCKS_PER_SEC ;
+
     run_cpu_gray_test(img_ibuf_g, argv[2]);
     free_pgm(img_ibuf_g);
 
 	end = clock();
-	overal_time = (double)(end - start) * 1000.0 / CLOCKS_PER_SEC ;
-	printf("Overal program time %g \n", overal_time);
+	overal_time += (double)(end - start) * 1000.0 / CLOCKS_PER_SEC ;
+	printf("Overal I/O time %g\n", overal_time_IO);
+	printf("Overal program time %g without IO %g\n", overal_time , overal_time - overal_time_IO);
 	return 0;
 }
 
@@ -36,7 +45,7 @@ void run_cpu_gray_test(PGM_IMG img_in, char *out_filename)
 {
     unsigned int timer = 0;
     PGM_IMG img_obuf;
-	double overal_time = 0;
+	//double overal_time = 0;
 	clock_t start, end;
 
     printf("Starting CPU processing...\n");
@@ -46,9 +55,8 @@ void run_cpu_gray_test(PGM_IMG img_in, char *out_filename)
     write_pgm(img_obuf, out_filename);
     free_pgm(img_obuf);
 	end = clock();
-	overal_time = (double)(end - start) * 1000.0 / CLOCKS_PER_SEC ;
+	overal_time_IO += (double)(end - start) * 1000.0 / CLOCKS_PER_SEC ;
 
-	printf("Overal I/O time %g\n", overal_time);
 }
 
 

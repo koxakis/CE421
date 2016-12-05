@@ -232,7 +232,7 @@ int main(int argc, char *argv[]){
 	printf("Overal program time on cpu %g \n", overal_CPU_time);
 	printf("Overal time on IO %g\n", overal_IO_time);
 
-	printf("Overal program time %g \n", overal_time);
+	printf("Overal program time %g without IO %g \n", overal_time, overal_time - overal_IO_time);
 
 
 	cudaDeviceReset();

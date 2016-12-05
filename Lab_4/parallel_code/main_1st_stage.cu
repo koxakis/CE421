@@ -27,7 +27,8 @@ __global__ void histogram_equalizationGPU ( unsigned char * d_img_out, unsigned 
 
 int main(int argc, char *argv[]){
 	// Host Variables
-	clock_t start, end, start2, end2;
+	clock_t start, start2, start_io, start_io2;
+	clock_t end, end2, end_io, end_io2;
 
 	start = clock();
     PGM_IMG h_img_in, h_img_out_buf;
@@ -51,7 +52,9 @@ int main(int argc, char *argv[]){
 		printf("Run with input file name and output file name as arguments\n");
 		exit(1);
 	}
+	start_io = clock();
     h_img_in = read_pgm(argv[1]);
+	end_io = clock();
 
 	h_img_out_buf.w = h_img_in.w;
 	h_img_out_buf.h = h_img_in.h;
@@ -165,9 +168,11 @@ int main(int argc, char *argv[]){
 	cudaCheckError();
 
 	// I/O Stuff
+	start_io2 = clock();
     write_pgm(h_img_out_buf, argv[2]);
 	free_pgm(h_img_in);
     free_pgm(h_img_out_buf);
+	end_io2 = clock();
 
 	timer.Start();
 	cudaFree(d_hist_in);
@@ -198,11 +203,12 @@ int main(int argc, char *argv[]){
 	end = clock();
 	overal_time = (double)(end - start) * 1000.0 / CLOCKS_PER_SEC ;
 	overal_CPU_time = (double)(end2 - start2) * 1000.0 / CLOCKS_PER_SEC ;
+	overal_IO_time = ((double)(end_io - start_io) * 1000.0 / CLOCKS_PER_SEC) + ((double)(end_io2 - start_io2) * 1000.0 / CLOCKS_PER_SEC);
 
 	printf("Overal program time on cpu %g \n", overal_CPU_time);
+	printf("Overal time on IO %g\n", overal_IO_time);
 
-	printf("Overal program time %g \n", overal_time);
-
+	printf("Overal program time %g without IO %g \n", overal_time, overal_time - overal_IO_time);
 
 	cudaDeviceReset();
 	return 0;
