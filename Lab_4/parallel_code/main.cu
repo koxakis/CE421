@@ -15,15 +15,17 @@
 //Posible cdf culc
 __global__ void cdf_culcGPU(int min, int d, int * d_lut, int * d_hist_in) {
 	int cdf = 0;
-	int thread_pos = blockIdx.x * blockDim.x + threadIdx.x;
-	//for (int i = 0; i < 256; i++) {
-		cdf += d_hist_in[thread_pos];
-		d_lut[thread_pos] = (int)(((float)cdf - min)*255/d + 0.5);
-		if (d_lut[thread_pos] < 0) {
-			d_lut[thread_pos] = 0;
-		}
+	int thread_pos = threadIdx.x;
 
-	//}
+	for (int i = 0; i < thread_pos; i++) {
+		cdf += d_hist_in[i];
+	}
+	__syncthreads();
+	d_lut[thread_pos] = (int)(((float)cdf - min)*255/d + 0.5);
+	if (d_lut[thread_pos] < 0) {
+		d_lut[thread_pos] = 0;
+	}
+
 }
 __global__ void histogram_equalizationGPU ( unsigned char * d_img_out, unsigned char * d_img_in,
 											int img_size, int nbr_bin, int * d_lut, int threads_number) {
