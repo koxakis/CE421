@@ -120,6 +120,8 @@ int main(int argc, char **argv) {
     assert(clusters != NULL);
     clusters[0] = (float*)  malloc(numClusters * numCoords * sizeof(float));
     assert(clusters[0] != NULL);
+
+	//Data dentancy
     for (i=1; i<numClusters; i++)
         clusters[i] = clusters[i-1] + numCoords;
 
@@ -168,6 +170,7 @@ int main(int argc, char **argv) {
     membership = (int*) malloc(numObjs * sizeof(int));
     assert(membership != NULL);
 
+	// Link to seq_kmeans.c 
     seq_kmeans(objects, numCoords, numObjs, numClusters, threshold, membership,
                clusters);
 
@@ -204,4 +207,3 @@ int main(int argc, char **argv) {
 
     return(0);
 }
-

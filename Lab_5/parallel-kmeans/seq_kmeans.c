@@ -21,6 +21,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <omp.h>
 
 #include "kmeans.h"
 
@@ -35,6 +36,8 @@ float euclid_dist_2(int    numdims,  /* no. dimensions */
     int i;
     float ans=0.0;
 
+	// Can be paralelized needs sync
+	#pragma omp parallel for reduction (+:ans)
     for (i=0; i<numdims; i++)
         ans += (coord1[i]-coord2[i]) * (coord1[i]-coord2[i]);
 
@@ -55,6 +58,8 @@ int find_nearest_cluster(int     numClusters, /* no. clusters */
     index    = 0;
     min_dist = euclid_dist_2(numCoords, object, clusters[0]);
 
+	// Can be paralelized
+	//paralelize function call and bring in after
     for (i=1; i<numClusters; i++) {
         dist = euclid_dist_2(numCoords, object, clusters[i]);
         /* no need square root */
@@ -84,6 +89,8 @@ int seq_kmeans(float **objects,      /* in: [numObjs][numCoords] */
     float  **newClusters;    /* [numClusters][numCoords] */
 
     /* initialize membership[] */
+	//can be paralelized
+	#pragma omp parallel for
     for (i=0; i<numObjs; i++) membership[i] = -1;
 
     /* need to initialize newClusterSize and newClusters[0] to all 0 */
@@ -94,8 +101,12 @@ int seq_kmeans(float **objects,      /* in: [numObjs][numCoords] */
     assert(newClusters != NULL);
     newClusters[0] = (float*)  calloc(numClusters * numCoords, sizeof(float));
     assert(newClusters[0] != NULL);
-    for (i=1; i<numClusters; i++)
-        newClusters[i] = newClusters[i-1] + numCoords;
+
+	//Can be paralelized - not really
+	//#pragma omp parallel for
+		for (i=1; i<numClusters; i++){
+			newClusters[i] = newClusters[i-1] + numCoords;
+		}
 
     do {
         delta = 0.0;
@@ -117,6 +128,7 @@ int seq_kmeans(float **objects,      /* in: [numObjs][numCoords] */
         }
 
         /* average the sum and replace old cluster center with newClusters */
+		//Maybe paralell
         for (i=0; i<numClusters; i++) {
             for (j=0; j<numCoords; j++) {
                 if (newClusterSize[i] > 0)
@@ -125,7 +137,7 @@ int seq_kmeans(float **objects,      /* in: [numObjs][numCoords] */
             }
             newClusterSize[i] = 0;   /* set back to 0 */
         }
-            
+
         delta /= numObjs;
     } while (delta > threshold && loop++ < 500);
 
@@ -135,4 +147,3 @@ int seq_kmeans(float **objects,      /* in: [numObjs][numCoords] */
 
     return 1;
 }
-

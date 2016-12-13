@@ -5,6 +5,9 @@
 *.elf
 
 Lab_5/parallel-kmeans/Image_data/
+Lab_5/parallel-kmeans/Test_Advice/
+Lab_5/parallel-kmeans/test_inspector/
+Lab_5/sequential_golden_stuff/Image_data/
 
 seq_main
 
