@@ -24,54 +24,6 @@
 
 #include "kmeans.h"
 
-
-/*----< euclid_dist_2() >----------------------------------------------------*/
-/* square of Euclid distance between two multi-dimensional points            */
-__inline static
-float euclid_dist_2(int    numdims,  /* no. dimensions */
-                    float *coord1,   /* [numdims] */
-                    float *coord2)   /* [numdims] */
-{
-    int i;
-    float ans=0.0;
-
-    for (i=0; i<numdims; i++)
-        ans += (coord1[i]-coord2[i]) * (coord1[i]-coord2[i]);
-
-    return(ans);
-}
-
-/*----< find_nearest_cluster() >---------------------------------------------*/
-__inline static
-int find_nearest_cluster(int     numClusters, /* no. clusters */
-                         int     numCoords,   /* no. coordinates */
-                         float  *object,      /* [numCoords] */
-                         float **clusters)    /* [numClusters][numCoords] */
-{
-    int   index, i, k;
-    float dist , min_dist =0.0;
-	float ans=0.0;
-
-    /* find the cluster id that has min distance to object */
-    index    = 0;
-	for (i=0; i<numCoords; i++)
-        min_dist += (object[i]-clusters[0][i]) * (object[i]-clusters[0][i]);
-    //min_dist = euclid_dist_2(numCoords, object, clusters[0]);
-
-    for (i=1; i<numClusters; i++) {
-		for (k=0, ans = 0.0; k<numCoords; k++)
-	        ans += (object[k]-clusters[i][k]) * (object[k]-clusters[i][k]);
-        //dist = euclid_dist_2(numCoords, object, clusters[i]);
-		dist = ans;
-        /* no need square root */
-        if (dist < min_dist) { /* find the min and its array index */
-            min_dist = dist;
-            index    = i;
-        }
-    }
-    return(index);
-}
-
 /*----< seq_kmeans() >-------------------------------------------------------*/
 /* return an array of cluster centers of size [numClusters][numCoords]       */
 int seq_kmeans(float **objects,      /* in: [numObjs][numCoords] */
@@ -83,9 +35,11 @@ int seq_kmeans(float **objects,      /* in: [numObjs][numCoords] */
                float **clusters)     /* out: [numClusters][numCoords] */
 
 {
-    int      i, j, index, loop=0;
+    int      i, j, index, loop=0, k, v, l;
     int     *newClusterSize; /* [numClusters]: no. objects assigned in each
                                 new cluster */
+	float  dist, min_dist = 0.0;
+	float ans = 0.0;
     float    delta;          /* % of objects change their clusters */
     float  **newClusters;    /* [numClusters][numCoords] */
 
@@ -107,8 +61,26 @@ int seq_kmeans(float **objects,      /* in: [numObjs][numCoords] */
         delta = 0.0;
         for (i=0; i<numObjs; i++) {
             /* find the array index of nestest cluster center */
-            index = find_nearest_cluster(numClusters, numCoords, objects[i],
-                                         clusters);
+			/* find the cluster id that has min distance to object */
+		    index    = 0;
+			for (l=0, min_dist = 0.0; l<numCoords; l++)
+		        min_dist += (objects[i][l]-clusters[0][l]) * (objects[i][l]-clusters[0][l]);
+		    //min_dist = euclid_dist_2(numCoords, object, clusters[0]);
+
+		    for (l=1; l<numClusters; l++) {
+				for (k=0, ans = 0.0; k<numCoords; k++)
+			        ans += (objects[i][k]-clusters[l][k]) * (objects[i][k]-clusters[l][k]);
+		        //dist = euclid_dist_2(numCoords, object, clusters[i]);
+				dist = ans;
+		        /* no need square root */
+		        if (dist < min_dist) { /* find the min and its array index */
+		            min_dist = dist;
+		            index    = l;
+		        }
+		    }
+
+            //index = find_nearest_cluster(numClusters, numCoords, objects[i],
+            //                             clusters);
 
             /* if membership changes, increase delta by 1 */
             if (membership[i] != index) delta += 1.0;
