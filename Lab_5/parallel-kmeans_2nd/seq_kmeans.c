@@ -65,8 +65,7 @@ int seq_kmeans(float **objects,      /* in: [numObjs][numCoords] */
 		#pragma omp parallel for \
 				private (i, j, l, index) \
 				firstprivate(numObjs, numClusters, numCoords) \
-				shared (objects, clusters, membership, newClusters, newClusterSize) \
-				schedule (static) \
+				schedule (dynamic) \
 				reduction (+:delta)
         for (i=0; i<numObjs; i++) {
             /* find the array index of nestest cluster center */
@@ -108,6 +107,7 @@ int seq_kmeans(float **objects,      /* in: [numObjs][numCoords] */
         }
 
         /* average the sum and replace old cluster center with newClusters */
+		#pragma omp master
         for (i=0; i<numClusters; i++) {
             for (j=0; j<numCoords; j++) {
                 if (newClusterSize[i] > 0)

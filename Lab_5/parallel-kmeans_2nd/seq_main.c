@@ -190,7 +190,7 @@ int main(int argc, char **argv) {
     /*---- output performance numbers ---------------------------------------*/
     if (is_output_timing) {
         io_timing += wtime() - timing;
-        printf("\nPerforming **** Regular Kmeans (sequential version) ****\n");
+        printf("\nPerforming **** Regular Kmeans (OpenMP version) ****\n");
 
         printf("Input file:     %s\n", filename);
         printf("numObjs       = %d\n", numObjs);
@@ -204,4 +204,3 @@ int main(int argc, char **argv) {
 
     return(0);
 }
-
