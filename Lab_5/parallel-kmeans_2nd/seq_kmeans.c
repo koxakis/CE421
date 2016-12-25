@@ -22,6 +22,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <omp.h>
 #include "kmeans.h"
 
 /*----< seq_kmeans() >-------------------------------------------------------*/
@@ -44,6 +45,7 @@ int seq_kmeans(float **objects,      /* in: [numObjs][numCoords] */
     float  **newClusters;    /* [numClusters][numCoords] */
 
     /* initialize membership[] */
+	#pragma omp parallel for
     for (i=0; i<numObjs; i++) membership[i] = -1;
 
     /* need to initialize newClusterSize and newClusters[0] to all 0 */
@@ -54,20 +56,29 @@ int seq_kmeans(float **objects,      /* in: [numObjs][numCoords] */
     assert(newClusters != NULL);
     newClusters[0] = (float*)  calloc(numClusters * numCoords, sizeof(float));
     assert(newClusters[0] != NULL);
+
     for (i=1; i<numClusters; i++)
         newClusters[i] = newClusters[i-1] + numCoords;
 
     do {
         delta = 0.0;
+		#pragma omp parallel for \
+				private (i, j, l, index) \
+				firstprivate(numObjs, numClusters, numCoords) \
+				shared (objects, clusters, membership, newClusters, newClusterSize) \
+				schedule (static) \
+				reduction (+:delta)
         for (i=0; i<numObjs; i++) {
             /* find the array index of nestest cluster center */
 			/* find the cluster id that has min distance to object */
 		    index    = 0;
+			//#pragma omp for reduction (+:min_dist)
 			for (l=0, min_dist = 0.0; l<numCoords; l++)
 		        min_dist += (objects[i][l]-clusters[0][l]) * (objects[i][l]-clusters[0][l]);
 		    //min_dist = euclid_dist_2(numCoords, object, clusters[0]);
 
 		    for (l=1; l<numClusters; l++) {
+				//#pragma omp for reduction (+:ans)
 				for (k=0, ans = 0.0; k<numCoords; k++)
 			        ans += (objects[i][k]-clusters[l][k]) * (objects[i][k]-clusters[l][k]);
 		        //dist = euclid_dist_2(numCoords, object, clusters[i]);
@@ -89,8 +100,10 @@ int seq_kmeans(float **objects,      /* in: [numObjs][numCoords] */
             membership[i] = index;
 
             /* update new cluster center : sum of objects located within */
+			#pragma omp atomic
             newClusterSize[index]++;
             for (j=0; j<numCoords; j++)
+				#pragma omp atomic
                 newClusters[index][j] += objects[i][j];
         }
 
@@ -106,6 +119,7 @@ int seq_kmeans(float **objects,      /* in: [numObjs][numCoords] */
 
         delta /= numObjs;
     } while (delta > threshold && loop++ < 500);
+
 
     free(newClusters[0]);
     free(newClusters);
