@@ -14,7 +14,7 @@
 
 .KEEP_STATE:
 
-all: seq 
+all: par
 
 
 CC             = icc
@@ -32,25 +32,25 @@ H_FILES     = kmeans.h
 COMM_SRC = file_io.c util.c
 
 
-SEQ_SRC     = seq_main.c   \
-              seq_kmeans.c \
+SEQ_SRC     = par_main.c   \
+              par_kmeans.c \
 	      wtime.c
 
 SEQ_OBJ     = $(SEQ_SRC:%.c=%.o) $(COMM_SRC:%.c=%.o)
 
 $(SEQ_OBJ): $(H_FILES)
 
-seq_main.o: seq_main.c $(H_FILES)
+par_main.o: par_main.c $(H_FILES)
 	$(CC) $(CFLAGS) -c $*.c
 
-seq_kmeans.o: seq_kmeans.c $(H_FILES)
+par_kmeans.o: par_kmeans.c $(H_FILES)
 	$(CC) $(CFLAGS) -c $*.c
 
 wtime.o: wtime.c
 	$(CC) $(CFLAGS) -c $*.c
 
-seq: seq_main
-seq_main: $(SEQ_OBJ) $(H_FILES)
+par: par_main
+par_main: $(SEQ_OBJ) $(H_FILES)
 	$(CC) $(LDFLAGS) -o $@ $(SEQ_OBJ) $(LIBS)
 
 IMAGE_FILES =   color100.txt   color17695.bin   color17695.nc \
@@ -72,7 +72,7 @@ dist:
 	&& rm -rf $$dist_dir
 
 clean:
-	rm -rf *.o seq_main \
+	rm -rf *.o par_main \
 		core* .make.state              \
 		*.cluster_centres *.membership \
 		*.cluster_centres.nc *.membership.nc \
@@ -81,6 +81,5 @@ clean:
 
 check: all
 	# sequential K-means ---------------------------------------------------
-	./seq_main -q -b -n 4 -i Image_data/color17695.bin
-	./seq_main -q    -n 4 -i Image_data/color100.txt
-
+	./par_main -q -b -n 4 -i Image_data/color17695.bin
+	./par_main -q    -n 4 -i Image_data/color100.txt
