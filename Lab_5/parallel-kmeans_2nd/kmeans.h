@@ -16,7 +16,7 @@
 
 #include <assert.h>
 
-int seq_kmeans(float**, int, int, int, float, int*, float**);
+int par_kmeans(float**, int, int, int, float, int*, float**);
 
 float** file_read(int, char*, int*, int*);
 int     file_write(char*, int, int, int, float**, int*, int);

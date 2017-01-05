@@ -84,7 +84,7 @@ int find_nearest_cluster(int     numClusters, /* no. clusters */
 
 /*----< seq_kmeans() >-------------------------------------------------------*/
 /* return an array of cluster centers of size [numClusters][numCoords]       */
-int seq_kmeans(float **objects,      /* in: [numObjs][numCoords] */
+int par_kmeans(float **objects,      /* in: [numObjs][numCoords] */
                int     numCoords,    /* no. features */
                int     numObjs,      /* no. objects */
                int     numClusters,  /* no. clusters */
