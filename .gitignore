@@ -4,6 +4,17 @@
 *.obj
 *.elf
 
+Lab_5/parallel-kmeans_2nd/Image_data/color17695.bin.cluster_centres
+Lab_5/parallel-kmeans_2nd/Image_data/color17695.bin.membership
+
+
+Lab_5/parallel-kmeans_2nd/Image_data/edge17695.bin.cluster_centres
+Lab_5/parallel-kmeans_2nd/Image_data/edge17695.bin.membership
+
+Lab_5/parallel-kmeans_2nd/Image_data/texture17695.bin.cluster_centres
+Lab_5/parallel-kmeans_2nd/Image_data/texture17695.bin.membership
+
+
 Lab_5/parallel-kmeans_2nd/par_main
 Lab_5/parallel-kmeans/Image_data/
 Lab_5/parallel-kmeans/Test_Advice/
