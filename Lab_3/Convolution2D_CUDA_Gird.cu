@@ -44,7 +44,7 @@ typedef int vart_t;
             printf("Cuda failure %s:%d: '%s'\n",__FILE__,__LINE__,cudaGetErrorString(e));        \
             exit(EXIT_FAILURE);                                                                  \
         }                                                                                        \
-    }
+    }																							
 
 ////////////////////////////////////////////////////////////////////////////////
 // Reference row convolution filter

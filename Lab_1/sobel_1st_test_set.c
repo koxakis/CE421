@@ -16,8 +16,8 @@ loop unrolling
 #include <errno.h>
 
 //Common subexpresion elimination 1st stage
-#define SIZE	4096
-#define SIZE_2	4096*4096
+#define SIZE	2560
+#define SIZE_2	2560*2560
 #define INPUT_FILE	"input.grey"
 #define OUTPUT_FILE	"output_sobel.grey"
 #define GOLDEN_FILE	"golden.grey"
